@@ -1,0 +1,71 @@
+{
+    "name": "Topaz Labs Image Enhancement Library",
+    "library_schema_version": "0.1.0",
+    "settings": [
+        {
+            "description": "Environment variables for storing secrets for Topaz Labs nodes",
+            "category": "nodes.TOPAZ_LABS",
+            "contents": {
+                "TOPAZ_LABS_API_KEY": "$TOPAZ_LABS_API_KEY"
+            }
+        }
+    ],
+    "metadata": {
+        "author": "Griptape",
+        "description": "Nodes for image enhancement and denoising using Topaz Labs API",
+        "library_version": "0.1.0",
+        "engine_version": "0.1.0",
+        "tags": [
+            "Griptape",
+            "AI",
+            "Topaz Labs",
+            "Image Enhancement",
+            "Image Denoising",
+            "Image Processing"
+        ],
+        "dependencies": {
+            "pip_dependencies": [
+                "requests"
+            ]
+        }
+    },
+    "categories": [
+        {
+            "Image Processing": {
+                "color": "border-blue-500",
+                "title": "Image Processing",
+                "description": "Image enhancement and processing nodes using Topaz Labs API",
+                "icon": "Image"
+            }
+        }
+    ],
+    "nodes": [
+        {
+            "class_name": "TopazDenoiseNode",
+            "file_path": "nodes/topaz_denoise_node.py",
+            "metadata": {
+                "category": "Image Processing",
+                "description": "Reduces image noise using Topaz Labs Denoise API with adjustable strength and detail preservation.",
+                "display_name": "Topaz Denoise"
+            }
+        },
+        {
+            "class_name": "TopazEnhanceNode",
+            "file_path": "nodes/topaz_enhance_node.py",
+            "metadata": {
+                "category": "Image Processing",
+                "description": "Enhances image sharpness, clarity, and facial details using Topaz Labs Enhance API.",
+                "display_name": "Topaz Enhance"
+            }
+        },
+        {
+            "class_name": "TopazCreativeEnhanceNode",
+            "file_path": "nodes/topaz_creative_enhance_node.py",
+            "metadata": {
+                "category": "Image Processing",
+                "description": "Creative image enhancement using generative AI models with prompt-based control and artistic effects.",
+                "display_name": "Topaz Creative Enhance"
+            }
+        }
+    ]
+}

@@ -1,319 +1,497 @@
-# Griptape Nodes: Node Library Template
+# Topaz Labs Image Enhancement Nodes for Griptape
 
-Hi! Welcome to Griptape Nodes. 
-This is a guide to write your own nodes and node library, in order to use in our [Griptape Nodes](https://www.griptapenodes.com/) platform. 
+Professional image enhancement and denoising nodes powered by the Topaz Labs API. Transform your images with industry-leading AI algorithms for noise reduction, sharpening, facial detail restoration, and creative AI-powered enhancement.
 
-## Use this Template
-Create your own repository using this GitHub Template. Use the Template button in the top right. 
+![Topaz Labs](https://img.shields.io/badge/Topaz%20Labs-API-blue)
+![Griptape Nodes](https://img.shields.io/badge/Griptape-Nodes-green)
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 
-Once you've created your own repository from this template, you need to pull it down to your local machine, or the machine where you are running your Griptape Nodes Engine. 
+## 🚀 Quick Start
 
-> **Hint**: It's recommended to clone this repository into your Griptape Nodes workspace directory. You can find your workspace directory by running:
-> ```bash
-> gtn config | grep workspace_directory
-> ```
-> Here's a quick way to navigate to your workspace directory:
-> ```bash
-> cd $(gtn config | grep workspace_directory | cut -d'"' -f4)
-> ```
-> Finally, clone the repository:
-> ```bash
-> git clone https://github.com/{{ .RepoName }}.git
-> ```
+### Prerequisites
 
-## Rename Directory
+1. **Topaz Labs API Key** - Get your API key from [Topaz Labs](https://www.topazlabs.com/)
+2. **Griptape Nodes** - Running instance of Griptape Nodes
 
-To create your node library and make it importable by other users, please follow the steps below.
+### Installation
 
-1. rename `example_nodes_template` to the name of your library.
-2. Update the `pyproject.toml`:
-    ```
-    [project]
-    name = "<your-library-name>"
-    version = "0.1.0"
-    description = "<your-description>"
-    authors = [
-        {name = "<Your-Name>",email = "<you@example.com>"}
-    ]
-    ```
+1. Clone this repository to your Griptape Nodes workspace
+2. Set your API key as an environment variable:
+   ```bash
+   export TOPAZ_LABS_API_KEY="your_api_key_here"
+   ```
+3. The nodes will automatically appear in the "Image Processing" category
 
-Next, we'll create the nodes that will live in your library.
+## 🎯 Available Nodes
 
-Each node is it's own python file, written in pure python code!
+### Topaz Denoise
+Professional noise reduction with advanced detail preservation algorithms.
 
-To create nodes for your library, please take a look at our provided examples in the `example_nodes_template` library and follow the steps below.
+### Topaz Enhance  
+Comprehensive image enhancement with sharpening, compression fixing, and facial restoration.
 
-[Example Data Node](example_nodes_template/data_node.py)
+### Topaz Creative Enhance ✨ NEW
+AI-powered creative enhancement using generative models with prompt-based control for artistic effects.
 
+---
 
-[Example Control Node](example_nodes_template/control_node.py)
+## 📚 Node Reference
 
+## Topaz Denoise Node
 
-[Example Node with Dependencies](example_nodes_template/dependency_node.py)
+Reduces image noise using Topaz Labs' advanced denoising algorithms. Perfect for cleaning up photos taken in low light, high ISO settings, or scanned images.
 
+### Parameters
 
-## Define a file with your node name
-Define a `<your-node-name>.py` file in your `<your-library-name>` directory. 
+#### **Model** 
+*Dropdown Selection*
+- **Normal**: Light noise reduction for subtly noisy images
+- **Strong**: Moderate noise reduction for moderately noisy images  
+- **Extreme**: Heavy noise reduction for severely noisy images
 
-## Define the Node Class
-There are two different types of Nodes that you could choose to define.
+*Recommendation: Start with Normal and increase if needed*
 
-1. **ControlNode**
-    Has Parameters that allow for configuring a control flow. They create the main path of the flow upon run. 
-2. **DataNode**
-    Solely has parameters that define and create data values. They can be dependencies of nodes on the main flow, but don't have control inputs/outputs.
-    *You can add ControlParameters to a DataNode if desired to give it the functionality of a ControlNode.*
+#### **Strength** 
+*Slider: 0.01 - 1.0, Default: 0.5*
 
-Within your `<your-node-name>.py`.
-Add this import at the top of your file and define your Node or Nodes as a class. 
+Controls how aggressively noise is removed. Higher values remove more noise but may also remove fine details.
 
-```
-from griptape_nodes.exe_types.node_types import ControlNode, DataNode
-from griptape_nodes.exe_types.core_types import Parameter
+- **0.1-0.3**: Subtle noise reduction, preserves maximum detail
+- **0.4-0.6**: Balanced noise reduction (recommended starting point)
+- **0.7-1.0**: Aggressive noise reduction for heavily degraded images
 
-# Creating a Control Node
-class <YourNodeName>(ControlNode):
-    pass
+#### **Minor Deblur**
+*Slider: 0.01 - 1.0, Default: 0.1*
 
-# Creating a Data Node
-class <YourNodeName>(DataNode):
-    pass
-```
+Applies mild sharpening after noise reduction to restore sharpness lost during the denoising process.
 
-## Initialize your Node and define your Parameters
+- **0.0-0.2**: Minimal sharpening restoration
+- **0.3-0.5**: Moderate sharpening restoration
+- **0.6-1.0**: Strong sharpening restoration
 
-Parameters are fields on the node that can be connected to other nodes or set by the user. 
-Parameters have many fields that can be configured for their desired behavior. 
-Only a couple of the fields are mandatory. The rest are optional.
+#### **Original Detail**
+*Slider: 0.0 - 1.0, Default: 0.5*
 
-### Parameter Fields 
-1. name: `str` The name of the parameter. Must be unique to the node.
-2. tooltip: `str | list[dict]` The description that will appear upon hovering the mouse.
-3. type: `str` *OPTIONAL* The type of the value in the parameter. If not defined, it will be whatever the python type is.
-4. input_types: `list[str]` *OPTIONAL* The allowed list of types that can be connected as an INPUT to your parameter.
-5. output_type: `str` *OPTIONAL* The type that the OUTPUT of your parameter will be.
-6. default_value: Any *OPTIONAL* A default value for your parameter if it isn't set
-7. tooltip_as_input: `str | list[dict]` *OPTIONAL* Tooltip on the input port
-8. tooltip_as_property: `str | list[dict]` *OPTIONAL* Tooltip on the property displapy
-9. tooltip_as_output: `str | list[dict]` *OPTIONAL* Tooltip on the output port
-10. allowed_modes: `set[ParameterMode]` 
-    *OPTIONAL* The allowed modes. 
-    `ParameterMode.INPUT`: Accepts inputs 
-    `ParameterMode.OUTPUT`: Sends output
-    `ParameterMode.PROPERTY`: Can be set on the node itself. 
-11. ui_options: `dict`  *OPTIONAL* Informs the display of your node.
-12. traits: `set[type[Trait] | Trait]` *OPTIONAL* Reusable classes that define features on a parameter, including converters and UI options. They are inheritable!
-13. converters: `list[Callable[[Any], Any]]` *OPTIONAL* Modifies the parameter value after being set if needed.
-14. validators: `list[Callable[[Parameter, Any], None]]` *OPTIONAL* Validates that the value on the parameter is correct.
+Restores fine texture and detail that may be lost during aggressive denoising.
 
-## Define Node Method
+- **0.0-0.3**: Prioritizes smooth noise removal
+- **0.4-0.7**: Balanced detail preservation (recommended)
+- **0.8-1.0**: Maximum detail preservation (may retain some noise)
 
-Nodes have one absolute method that *absolutely* (haha) must be defined.
-This is the method that is called by the node at runtime when a node executes. 
-It completes the function of your node, whether thats creating a string, generating an image, or creating an agent.
-```
-def process(self) -> None:
-    pass
-```
-### Additional Optional Methods
-Nodes have additional methods that can provide functionality at or before runtime (and you can define as many helper functions as you'd like.)
-1. Validate Node
-``` 
-def validate_node(self) -> list[Exception] | None:
-        """Method called to check that all dependencies, like API keys or models, exist in the environment before running the workflow. 
-        The default behavior is to return None. Custom Nodes that have dependencies will overwrite this method in order to return exceptions if the environment isn't set.
-        For example, a node that uses an OpenAI API Key will check that it is set in the environment and that the key is valid. 
+#### **Output Format**
+*Dropdown: jpeg, png, webp*
 
-        Returns:
-            A list of exceptions if any arise, or None. The user can define their own custom exceptions, or use provided python exceptions. 
-        """
-```
-2. Before setting a value on a parameter
-```
-def before_value_set(self, parameter: Parameter, value: Any, modified_parameters_set: set[str]) -> Any:
-    """Callback when a Parameter's value is ABOUT to be set.
+Choose the output image format. JPEG for smaller files, PNG for lossless quality.
 
-        Custom nodes may elect to override the default behavior by implementing this function in their node code.
+---
 
-        This gives the node an opportunity to perform custom logic before a parameter is set. This may result in:
-        * Further mutating the value that would be assigned to the Parameter
-        * Mutating other Parameters or state within the Node
+## Topaz Enhance Node
 
-        If other Parameters are changed, the engine needs a list of which
-        ones have changed to cascade unresolved state.
+Enhances image sharpness, clarity, and restores facial details using Topaz Labs' enhancement algorithms. Ideal for improving overall image quality and bringing out fine details.
 
-        Args:
-            parameter: the Parameter on this node that is about to be changed
-            value: the value intended to be set (this has already gone through any converters and validators on the Parameter)
-            modified_parameters_set: A set of parameter names within this node that were modified as a result
-                of this call. The Parameter this was called on does NOT need to be part of the return.
+### Parameters
 
-        Returns:
-            The final value to set for the Parameter. This gives the Node logic one last opportunity to mutate the value
-            before it is assigned.
-        """
-```
-3. After setting a value on a parameter
-```
-def after_value_set(self, parameter: Parameter, value: Any, modified_parameters_set: set[str]) -> None: 
-        """Callback AFTER a Parameter's value was set.
+#### **Model**
+*Dropdown Selection*
+- **Standard V2**: Balanced enhancement for most images
+- **Low Resolution V2**: Optimized for web images and low-resolution sources
+- **CGI**: Tailored for illustrations and synthetic graphics
+- **High Fidelity V2**: Preserves intricate photographic detail
+- **Text Refine**: Optimized for documents or text-heavy images
 
-        Custom nodes may elect to override the default behavior by implementing this function in their node code.
+#### **Sharpen**
+*Slider: 0.0 - 1.0, Default: 0.0*
 
-        This gives the node an opportunity to perform custom logic after a parameter is set. This may result in
-        changing other Parameters on the node. If other Parameters are changed, the engine needs a list of which
-        ones have changed to cascade unresolved state.
+Optional additional sharpening beyond the model's default enhancement.
 
-        Args:
-            parameter: the Parameter on this node that was just changed
-            value: the value that was set (already converted, validated, and possibly mutated by the node code)
-            modified_parameters_set: A set of parameter names within this node that were modified as a result
-                of this call. The Parameter this was called on does NOT need to be part of the return.
+- **0.0**: No additional sharpening (recommended starting point)
+- **0.1-0.3**: Subtle additional sharpening
+- **0.4-0.7**: Moderate additional sharpening
+- **0.8-1.0**: Strong additional sharpening
 
-        Returns:
-            Nothing
-        """
-```
-4. Checking if a connections to the node are allowed. 
-The default value is true, but Custom nodes can implement this method however they'd like to control connections.
-```
-def allow_incoming_connection(
-        self,
-        source_node: Self,
-        source_parameter: Parameter, 
-        target_parameter: Parameter, 
-    ) -> bool:
-        """Callback to confirm allowing a Connection coming TO this Node.
-        """
-        return True
-```
-```
-def allow_outgoing_connection(
-        self,
-        source_parameter: Parameter,  # noqa: ARG002
-        target_node: Self,  # noqa: ARG002
-        target_parameter: Parameter,  # noqa: ARG002
-    ) -> bool:
-        """Callback to confirm allowing a Connection going OUT of this Node."""
-        return True
-```
-5. Callbacks AFTER creating or removing a connection
-```
-def after_incoming_connection(
-        self,
-        source_node: Self,  # noqa: ARG002
-        source_parameter: Parameter,  # noqa: ARG002
-        target_parameter: Parameter,  # noqa: ARG002
-    ) -> None:
-        """Callback after a Connection has been established TO this Node."""
-        return
-```
-```
-def after_outgoing_connection(
-        self,
-        source_parameter: Parameter,  # noqa: ARG002
-        target_node: Self,  # noqa: ARG002
-        target_parameter: Parameter,  # noqa: ARG002
-    ) -> None:
-        """Callback after a Connection has been established OUT of this Node."""
-        return
+#### **Denoise**
+*Slider: 0.0 - 1.0, Default: 0.0*
 
-```
-```
-def after_incoming_connection_removed(
-        self,
-        source_node: Self,  # noqa: ARG002
-        source_parameter: Parameter,  # noqa: ARG002
-        target_parameter: Parameter,  # noqa: ARG002
-    ) -> None:
-        """Callback after a Connection TO this Node was REMOVED."""
-        return
-```
-```
-def after_outgoing_connection_removed(
-        self,
-        source_parameter: Parameter,  # noqa: ARG002
-        target_node: Self,  # noqa: ARG002
-        target_parameter: Parameter,  # noqa: ARG002
-    ) -> None:
-        """Callback after a Connection OUT of this Node was REMOVED."""
-        return
-```
+Optional denoising during the enhancement process.
 
+- **0.0**: No denoising
+- **0.1-0.4**: Light denoising for slightly noisy images
+- **0.5-0.8**: Moderate denoising for moderately noisy images
+- **0.9-1.0**: Heavy denoising for very noisy images
 
-## Add Node to Library
-In order to add a node to a library, you must configure your JSON file. This will keep track of all of the nodes in your library and allow them to be loaded on runtime!
+#### **Fix Compression**
+*Slider: 0.0 - 1.0, Default: 0.0*
 
-## Create your library as a JSON file. This will be copied and imported into the engine at runtime.
+Repairs artifacts from lossy JPEG compression.
 
-```
-{
-    # Information about your library
-    "name": "<Your-Library-Name>",
-    "library_schema_version": "0.1.0",
-    "metadata": {
-        "author": "<Your-Name>",
-        "description": "<Your Description>",
-        "library_version": "0.1.0",
-        "engine_version": "0.1.0",
-        "tags": [
-            "Griptape",
-            "AI"
-        ]
-    },
-    # Categories define different sections that you can organize your node into. These are UI hints that group how your nodes will be displayed within your library.
-    "categories": [
-        {
-            # The ID of your category
-            "Category1": {
-                # These are all UI hints for the Editor
-                "color": "border-red-500",
-                "title": "Category1",
-                "description": "<Your Description>",
-                "icon": "Scale"
-            }
-        },
-    ],
-    # What nodes exist in this library?
-    "nodes": [
-        {   
-            # The name of the class you defined in your <your-node-name>.py
-            "class_name": "<YourNodeName>",
-            # The relative file path to your node.
-            "file_path": "<your-library-name>/<your-node-name>.py",
-            "metadata": {
-                # What category should this node be displayed in?
-                "category": "Category1",
-                "description": "<Your Description>",
-                # The name you'd like displayed on Griptape Nodes.
-                "display_name": "<Your Node Name>"
-            }
-        }
-    ]
-}
-```
+- **0.0**: No compression fixing
+- **0.2-0.4**: Light compression artifact removal
+- **0.5-0.7**: Moderate compression artifact removal
+- **0.8-1.0**: Aggressive compression artifact removal
 
-## Add your library to your installed Engine! 
+#### **Face Enhancement**
+*Toggle: Default: False*
 
-If you haven't already installed your Griptape Nodes engine, follow the installation steps [HERE](https://github.com/griptape-ai/griptape-nodes).
-After you've completed those and you have your engine up and running: 
+Enables specialized facial detail restoration algorithms.
 
+#### **Face Enhancement Strength**
+*Slider: 0.0 - 1.0, Default: 0.5*
 
-1. Copy the path to your `library.json`. Right click on the file, and `Copy Path` (Not `Copy Relative Path`)
-![Copy path of the library.json](./images/get_json_path.png)
-2. Start up the engine! 
-3. Navigate to settings
-![Open Settings](./images/open_settings.png)
-4. Open your settings and go to the App Events tab. Add an item in **Libraries to Register**
-![Add Library to Register](./images/add_library.png)
-5. Paste your copied `library.json` path from earlier into the new item 
-![Paste in your absolute path](./images/paste_library.png)
-6. Exit out of Settings. It will save automatically! 
-7. Open up the **Libraries** dropdown on the left sidebar 
-![See Libraries](./images/see_libraries.png)
-8. Your newly registered library should appear! Drag and drop nodes to use them!
-![Library Display](./images/final_image.png)
+Controls the intensity of facial enhancement (only active when Face Enhancement is enabled).
 
+- **0.1-0.3**: Subtle facial enhancement
+- **0.4-0.7**: Moderate facial enhancement (recommended)
+- **0.8-1.0**: Strong facial enhancement
 
-### Here is an example flow that you could make with the provided nodes:
-![Example Flow](./images/example_flow.png)
+#### **Output Format**
+*Dropdown: jpeg, png, webp*
+
+Choose the output image format.
+
+---
+
+## Topaz Creative Enhance Node ✨
+
+AI-powered creative enhancement using generative models. Transform your images with artistic effects, intelligent prompting, and creative interpretation while maintaining photographic quality.
+
+### Parameters
+
+#### **Model**
+*Dropdown Selection*
+- **Redefine**: Balanced creative enhancement with artistic interpretation
+- **Recovery**: Specialized for restoring damaged or degraded images creatively
+- **Recovery V2**: Advanced version with improved quality and detail preservation
+
+#### **Prompt**
+*Text Area*
+
+Text prompt to guide the creative enhancement. Describe the desired artistic effect, mood, or style.
+
+- **Examples**: "cinematic lighting", "vintage film look", "dramatic shadows", "warm golden hour"
+- **Leave empty** to use autoprompt (AI analyzes image and generates appropriate enhancement)
+
+#### **Autoprompt**
+*Toggle: Default: True*
+
+Let the AI automatically generate a prompt based on image content analysis.
+
+- **True**: AI analyzes image and creates contextual enhancement
+- **False**: Use your custom prompt for directed creative enhancement
+
+#### **Creativity**
+*Slider: 1 - 6, Default: 3*
+
+Level of creative interpretation and artistic liberty.
+
+- **1-2**: Conservative enhancement, maintains original character
+- **3-4**: Balanced creativity with noticeable improvements (recommended)
+- **5-6**: High creativity, dramatic artistic transformation
+
+#### **Texture**
+*Slider: 1 - 5, Default: 3*
+
+Level of texture enhancement and detail amplification.
+
+- **1-2**: Subtle texture enhancement
+- **3**: Balanced texture improvement (recommended)
+- **4-5**: Strong texture emphasis, rich detail
+
+#### **Focus Boost**
+*Slider: 0.25 - 1.0, Default: 0.5*
+
+Boost focus and sharpness in key areas identified by AI.
+
+- **0.25-0.5**: Gentle focus enhancement
+- **0.5-0.75**: Moderate focus boost (recommended)
+- **0.75-1.0**: Strong focus enhancement
+
+#### **Seed**
+*Number Input: 0 - 999999, Optional*
+
+Random seed for reproducible results. Leave empty for random generation.
+
+- **Use specific seed**: Get consistent results across multiple runs
+- **Leave empty**: Generate unique variations each time
+
+#### **Output Format**
+*Dropdown: jpeg, png, webp*
+
+Choose the output image format.
+
+---
+
+## 🧑‍🍳 Recipe Guide
+
+### Recipe 1: Enhance an Old Photo
+
+**Goal**: Restore an old, faded photograph with noise and compression artifacts.
+
+**Workflow**:
+1. **Topaz Denoise** → **Topaz Enhance**
+
+**Denoise Settings**:
+- Model: `Strong` or `Extreme`
+- Strength: `0.6-0.8`
+- Minor Deblur: `0.3-0.5`
+- Original Detail: `0.6-0.8`
+
+**Enhance Settings**:
+- Model: `High Fidelity V2`
+- Fix Compression: `0.5-0.7`
+- Face Enhancement: `True` (if faces present)
+- Face Enhancement Strength: `0.6-0.8`
+
+### Recipe 2: Clean Up a Low-Light Photo
+
+**Goal**: Remove noise from a photo taken in low light conditions.
+
+**Workflow**:
+1. **Topaz Denoise** only
+
+**Settings**:
+- Model: `Normal` or `Strong`
+- Strength: `0.4-0.6`
+- Minor Deblur: `0.2-0.4`
+- Original Detail: `0.7-0.9`
+
+### Recipe 3: Enhance a Web Image
+
+**Goal**: Improve a low-resolution image downloaded from the web.
+
+**Workflow**:
+1. **Topaz Enhance** only
+
+**Settings**:
+- Model: `Low Resolution V2`
+- Sharpen: `0.2-0.4`
+- Fix Compression: `0.4-0.6`
+- Face Enhancement: `True` (if faces present)
+
+### Recipe 4: Professional Portrait Touch-Up
+
+**Goal**: Enhance a portrait with focus on facial details.
+
+**Workflow**:
+1. **Topaz Enhance** only
+
+**Settings**:
+- Model: `Standard V2`
+- Sharpen: `0.1-0.3`
+- Denoise: `0.1-0.3`
+- Face Enhancement: `True`
+- Face Enhancement Strength: `0.5-0.7`
+
+### Recipe 5: Restore a Heavily Compressed Image
+
+**Goal**: Fix an image with severe JPEG compression artifacts.
+
+**Workflow**:
+1. **Topaz Enhance** only
+
+**Settings**:
+- Model: `Standard V2` or `High Fidelity V2`
+- Fix Compression: `0.7-0.9`
+- Sharpen: `0.2-0.4`
+
+### Recipe 6: Maximum Quality Restoration
+
+**Goal**: Apply comprehensive restoration to a damaged image.
+
+**Workflow**:
+1. **Topaz Denoise** → **Topaz Enhance**
+
+**Denoise Settings**:
+- Model: `Strong`
+- Strength: `0.7`
+- Minor Deblur: `0.4`
+- Original Detail: `0.8`
+
+**Enhance Settings**:
+- Model: `High Fidelity V2`
+- Sharpen: `0.3`
+- Fix Compression: `0.6`
+- Face Enhancement: `True`
+- Face Enhancement Strength: `0.7`
+
+### Recipe 7: Creative Cinematic Enhancement ✨ NEW
+
+**Goal**: Transform a photo with cinematic, film-like qualities.
+
+**Workflow**:
+1. **Topaz Creative Enhance** only
+
+**Settings**:
+- Model: `Redefine`
+- Prompt: `"cinematic lighting, film grain, dramatic shadows, warm color grading"`
+- Autoprompt: `False`
+- Creativity: `4-5`
+- Texture: `3-4`
+- Focus Boost: `0.6-0.8`
+
+### Recipe 8: Artistic Photo Transformation ✨ NEW
+
+**Goal**: Create an artistic interpretation of a photograph.
+
+**Workflow**:
+1. **Topaz Creative Enhance** only
+
+**Settings**:
+- Model: `Redefine`
+- Autoprompt: `True`
+- Creativity: `5-6`
+- Texture: `4-5`
+- Focus Boost: `0.5-0.7`
+
+### Recipe 9: Vintage Photo Revival ✨ NEW
+
+**Goal**: Give modern photos a vintage, nostalgic look.
+
+**Workflow**:
+1. **Topaz Creative Enhance** only
+
+**Settings**:
+- Model: `Recovery V2`
+- Prompt: `"vintage film photography, warm tones, soft lighting, nostalgic mood"`
+- Autoprompt: `False`
+- Creativity: `3-4`
+- Texture: `2-3`
+- Focus Boost: `0.4-0.6`
+
+### Recipe 10: Ultimate Creative Restoration ✨ NEW
+
+**Goal**: Comprehensive restoration with creative enhancement.
+
+**Workflow**:
+1. **Topaz Denoise** → **Topaz Creative Enhance**
+
+**Denoise Settings**:
+- Model: `Strong`
+- Strength: `0.6`
+- Minor Deblur: `0.3`
+- Original Detail: `0.7`
+
+**Creative Enhance Settings**:
+- Model: `Recovery V2`
+- Autoprompt: `True`
+- Creativity: `4`
+- Texture: `4`
+- Focus Boost: `0.6`
+
+---
+
+## 💡 Tips & Best Practices
+
+### Model Selection Guide
+
+**When to use each Denoise model**:
+- **Normal**: Digital camera noise, mild ISO noise
+- **Strong**: Scan artifacts, moderate noise from older cameras
+- **Extreme**: Heavy film grain, severe digital noise, very old photos
+
+**When to use each Enhance model**:
+- **Standard V2**: Most photographs, general enhancement
+- **Low Resolution V2**: Social media images, web graphics, thumbnails
+- **CGI**: Digital art, 3D renders, illustrations
+- **High Fidelity V2**: Professional photography, detailed texture preservation
+- **Text Refine**: Screenshots, documents, images with text
+
+**When to use each Creative Enhance model** ✨:
+- **Redefine**: Artistic enhancement, creative interpretation, modern photos
+- **Recovery**: Damaged photo restoration with creative elements
+- **Recovery V2**: Advanced restoration with maximum quality and creative enhancement
+
+### Parameter Tuning Tips
+
+1. **Start Conservative**: Begin with lower values and increase gradually
+2. **Preview Effects**: Use the status messages to track processing parameters
+3. **Chain Thoughtfully**: Denoise first, then enhance for best results
+4. **Face Priority**: Enable face enhancement for portraits and group photos
+5. **Format Choice**: Use PNG for archival quality, JPEG for smaller files
+6. **Creative Balance**: Higher creativity = more dramatic changes, use sparingly
+7. **Prompt Crafting**: Be specific but concise in creative prompts
+8. **Seed Consistency**: Use seeds for reproducible creative results
+
+### Workflow Optimization
+
+- **Single Pass**: For light enhancement, use Enhance alone
+- **Two Pass**: For heavily degraded images, use Denoise → Enhance
+- **Creative Pass**: For artistic effects, use Creative Enhance alone or after cleanup
+- **Three Pass Ultimate**: Denoise → Enhance → Creative Enhance for maximum quality
+- **Batch Processing**: Connect multiple images to process sets efficiently
+- **Quality Check**: Monitor the hash values in status to ensure different images are processed
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**"No input image provided"**
+- Ensure an image is connected to the input
+- Check that the image artifact is valid
+- Verify the connection is properly established
+
+**"API key not found"**
+- Set the `TOPAZ_LABS_API_KEY` environment variable
+- Restart Griptape Nodes after setting the environment variable
+- Verify the API key is valid and active
+
+**"Request timed out"**
+- Large images may take longer to process
+- Creative models take longer than standard models
+- Check your internet connection
+- Verify Topaz Labs API service status
+
+**"Authentication failed"**
+- Check your API key is correct
+- Verify your Topaz Labs account is active
+- Ensure you have sufficient API credits
+
+**Creative Enhancement Issues**:
+- Empty prompts with autoprompt disabled may cause errors
+- Very high creativity settings may produce unexpected results
+- Generative models consume more API credits
+
+### Debug Information
+
+All nodes provide detailed status information:
+- Image type and identifier
+- Image size in bytes
+- Processing hash (to verify different images)
+- Current processing stage
+- Success/error messages
+
+Use this information to track processing and identify issues.
+
+---
+
+## 📋 API Limits & Considerations
+
+- **File Size**: Images are processed as uploaded, larger files take longer
+- **Rate Limits**: Respect Topaz Labs API rate limiting
+- **Credits**: Processing consumes API credits based on image size and complexity
+- **Timeout**: Large images may timeout after 5 minutes
+- **Formats**: Supports common formats (JPEG, PNG, WebP)
+- **Generative Models**: Creative enhance models consume more credits and processing time
+
+---
+
+## 🤝 Support
+
+For issues specific to these Griptape nodes:
+- Check the troubleshooting section above
+- Review the debug information in node status messages
+- Verify your API key and network connectivity
+
+For Topaz Labs API issues:
+- Visit [Topaz Labs Support](https://www.topazlabs.com/support)
+- Check your account status and API credits
+
+For Griptape Nodes platform issues:
+- Visit [Griptape Nodes Documentation](https://www.griptapenodes.com/)
+
+---
+
+## 📄 License
+
+This node library is provided as-is for use with Griptape Nodes and the Topaz Labs API. Please ensure you comply with Topaz Labs' terms of service when using their API.
