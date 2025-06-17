@@ -1,497 +1,358 @@
-# Topaz Labs Image Enhancement Nodes for Griptape
+# Topaz Labs Nodes for Griptape
 
-Professional image enhancement and denoising nodes powered by the Topaz Labs API. Transform your images with industry-leading AI algorithms for noise reduction, sharpening, facial detail restoration, and creative AI-powered enhancement.
+This library provides Griptape Nodes for interacting with Topaz Labs' AI-powered image enhancement APIs, enabling professional-grade image processing capabilities directly within your Griptape workflows.
 
-![Topaz Labs](https://img.shields.io/badge/Topaz%20Labs-API-blue)
-![Griptape Nodes](https://img.shields.io/badge/Griptape-Nodes-green)
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+## Features
 
-## 🚀 Quick Start
+### Image Processing
+- **Topaz Denoise**: Remove noise from images while preserving detail and sharpness
+- **Topaz Enhance**: Sharpen and enhance image quality with advanced AI upscaling
+- **Topaz Creative Enhance**: Apply creative AI enhancement with artistic control and face enhancement
 
-### Prerequisites
+### Video Processing
+- **Topaz Frame Interpolation**: Convert videos to 60fps with smooth motion and slow motion effects
+- **Topaz Video Upscale**: AI-powered video upscaling with resolution enhancement and quality improvement
+- **Topaz Video Denoise**: Remove noise and compression artifacts from videos with temporal consistency
 
-1. **Topaz Labs API Key** - Get your API key from [Topaz Labs](https://www.topazlabs.com/)
-2. **Griptape Nodes** - Running instance of Griptape Nodes
+## Installation
 
-### Installation
+1. Clone this repository into your Griptape Nodes workspace directory:
 
-1. Clone this repository to your Griptape Nodes workspace
-2. Set your API key as an environment variable:
-   ```bash
-   export TOPAZ_LABS_API_KEY="your_api_key_here"
-   ```
-3. The nodes will automatically appear in the "Image Processing" category
+```bash
+# Navigate to your workspace directory
+cd $(gtn config show | grep workspace_directory | cut -d'"' -f4)
 
-## 🎯 Available Nodes
+# Clone the repository
+git clone https://github.com/griptape-ai/griptape-nodes-library-topazlabs.git
+```
+
+2. Install dependencies:
+
+```bash
+cd griptape-nodes-library-topazlabs
+uv sync
+```
+
+## API Key Setup
+
+You'll need a Topaz Labs API key to use these nodes.
+
+### Get Your API Key
+
+1. Visit [Topaz Labs](https://www.topazlabs.com/)
+2. Create an account and access their API services
+3. Generate a new API key from your account dashboard
+
+### Configure Your API Key
+
+Configure your API key through the Griptape Nodes IDE:
+
+1. Open the **Settings** menu.
+2. Navigate to the **API Keys & Secrets** panel.
+3. Add a new secret configuration for the service named `Topaz Labs`.
+4. Enter your `TOPAZ_LABS_API_KEY` in the respective field.
+
+## Add your library to your installed Engine!
+
+If you haven't already installed your Griptape Nodes engine, follow the installation steps [HERE](https://github.com/griptape-ai/griptape-nodes).
+After you've completed those and you have your engine up and running:
+
+1. Copy the path to your `griptape-nodes-library.json` file within this `topazlabs` directory. Right click on the file, and `Copy Path` (Not `Copy Relative Path`).
+2. Start up the engine!
+3. Navigate to settings.
+4. Open your settings and go to the App Events tab. Add an item in **Libraries to Register**.
+5. Paste your copied `griptape-nodes-library.json` path from earlier into the new item.
+6. Exit out of Settings. It will save automatically!
+7. Open up the **Libraries** dropdown on the left sidebar.
+8. Your newly registered library should appear! Drag and drop nodes to use them!
+
+## Available Nodes
 
 ### Topaz Denoise
-Professional noise reduction with advanced detail preservation algorithms.
 
-### Topaz Enhance  
-Comprehensive image enhancement with sharpening, compression fixing, and facial restoration.
-
-### Topaz Creative Enhance ✨ NEW
-AI-powered creative enhancement using generative models with prompt-based control for artistic effects.
-
----
-
-## 📚 Node Reference
-
-## Topaz Denoise Node
-
-Reduces image noise using Topaz Labs' advanced denoising algorithms. Perfect for cleaning up photos taken in low light, high ISO settings, or scanned images.
-
-### Parameters
-
-#### **Model** 
-*Dropdown Selection*
-- **Normal**: Light noise reduction for subtly noisy images
-- **Strong**: Moderate noise reduction for moderately noisy images  
-- **Extreme**: Heavy noise reduction for severely noisy images
-
-*Recommendation: Start with Normal and increase if needed*
-
-#### **Strength** 
-*Slider: 0.01 - 1.0, Default: 0.5*
-
-Controls how aggressively noise is removed. Higher values remove more noise but may also remove fine details.
-
-- **0.1-0.3**: Subtle noise reduction, preserves maximum detail
-- **0.4-0.6**: Balanced noise reduction (recommended starting point)
-- **0.7-1.0**: Aggressive noise reduction for heavily degraded images
-
-#### **Minor Deblur**
-*Slider: 0.01 - 1.0, Default: 0.1*
-
-Applies mild sharpening after noise reduction to restore sharpness lost during the denoising process.
-
-- **0.0-0.2**: Minimal sharpening restoration
-- **0.3-0.5**: Moderate sharpening restoration
-- **0.6-1.0**: Strong sharpening restoration
-
-#### **Original Detail**
-*Slider: 0.0 - 1.0, Default: 0.5*
-
-Restores fine texture and detail that may be lost during aggressive denoising.
-
-- **0.0-0.3**: Prioritizes smooth noise removal
-- **0.4-0.7**: Balanced detail preservation (recommended)
-- **0.8-1.0**: Maximum detail preservation (may retain some noise)
-
-#### **Output Format**
-*Dropdown: jpeg, png, webp*
-
-Choose the output image format. JPEG for smaller files, PNG for lossless quality.
-
----
-
-## Topaz Enhance Node
-
-Enhances image sharpness, clarity, and restores facial details using Topaz Labs' enhancement algorithms. Ideal for improving overall image quality and bringing out fine details.
-
-### Parameters
-
-#### **Model**
-*Dropdown Selection*
-- **Standard V2**: Balanced enhancement for most images
-- **Low Resolution V2**: Optimized for web images and low-resolution sources
-- **CGI**: Tailored for illustrations and synthetic graphics
-- **High Fidelity V2**: Preserves intricate photographic detail
-- **Text Refine**: Optimized for documents or text-heavy images
-
-#### **Sharpen**
-*Slider: 0.0 - 1.0, Default: 0.0*
-
-Optional additional sharpening beyond the model's default enhancement.
-
-- **0.0**: No additional sharpening (recommended starting point)
-- **0.1-0.3**: Subtle additional sharpening
-- **0.4-0.7**: Moderate additional sharpening
-- **0.8-1.0**: Strong additional sharpening
-
-#### **Denoise**
-*Slider: 0.0 - 1.0, Default: 0.0*
-
-Optional denoising during the enhancement process.
-
-- **0.0**: No denoising
-- **0.1-0.4**: Light denoising for slightly noisy images
-- **0.5-0.8**: Moderate denoising for moderately noisy images
-- **0.9-1.0**: Heavy denoising for very noisy images
-
-#### **Fix Compression**
-*Slider: 0.0 - 1.0, Default: 0.0*
-
-Repairs artifacts from lossy JPEG compression.
-
-- **0.0**: No compression fixing
-- **0.2-0.4**: Light compression artifact removal
-- **0.5-0.7**: Moderate compression artifact removal
-- **0.8-1.0**: Aggressive compression artifact removal
-
-#### **Face Enhancement**
-*Toggle: Default: False*
-
-Enables specialized facial detail restoration algorithms.
-
-#### **Face Enhancement Strength**
-*Slider: 0.0 - 1.0, Default: 0.5*
-
-Controls the intensity of facial enhancement (only active when Face Enhancement is enabled).
-
-- **0.1-0.3**: Subtle facial enhancement
-- **0.4-0.7**: Moderate facial enhancement (recommended)
-- **0.8-1.0**: Strong facial enhancement
-
-#### **Output Format**
-*Dropdown: jpeg, png, webp*
-
-Choose the output image format.
-
----
-
-## Topaz Creative Enhance Node ✨
-
-AI-powered creative enhancement using generative models. Transform your images with artistic effects, intelligent prompting, and creative interpretation while maintaining photographic quality.
-
-### Parameters
-
-#### **Model**
-*Dropdown Selection*
-- **Redefine**: Balanced creative enhancement with artistic interpretation
-- **Recovery**: Specialized for restoring damaged or degraded images creatively
-- **Recovery V2**: Advanced version with improved quality and detail preservation
-
-#### **Prompt**
-*Text Area*
-
-Text prompt to guide the creative enhancement. Describe the desired artistic effect, mood, or style.
-
-- **Examples**: "cinematic lighting", "vintage film look", "dramatic shadows", "warm golden hour"
-- **Leave empty** to use autoprompt (AI analyzes image and generates appropriate enhancement)
-
-#### **Autoprompt**
-*Toggle: Default: True*
-
-Let the AI automatically generate a prompt based on image content analysis.
-
-- **True**: AI analyzes image and creates contextual enhancement
-- **False**: Use your custom prompt for directed creative enhancement
-
-#### **Creativity**
-*Slider: 1 - 6, Default: 3*
-
-Level of creative interpretation and artistic liberty.
-
-- **1-2**: Conservative enhancement, maintains original character
-- **3-4**: Balanced creativity with noticeable improvements (recommended)
-- **5-6**: High creativity, dramatic artistic transformation
-
-#### **Texture**
-*Slider: 1 - 5, Default: 3*
-
-Level of texture enhancement and detail amplification.
-
-- **1-2**: Subtle texture enhancement
-- **3**: Balanced texture improvement (recommended)
-- **4-5**: Strong texture emphasis, rich detail
-
-#### **Focus Boost**
-*Slider: 0.25 - 1.0, Default: 0.5*
-
-Boost focus and sharpness in key areas identified by AI.
-
-- **0.25-0.5**: Gentle focus enhancement
-- **0.5-0.75**: Moderate focus boost (recommended)
-- **0.75-1.0**: Strong focus enhancement
-
-#### **Seed**
-*Number Input: 0 - 999999, Optional*
-
-Random seed for reproducible results. Leave empty for random generation.
-
-- **Use specific seed**: Get consistent results across multiple runs
-- **Leave empty**: Generate unique variations each time
-
-#### **Output Format**
-*Dropdown: jpeg, png, webp*
-
-Choose the output image format.
-
----
-
-## 🧑‍🍳 Recipe Guide
-
-### Recipe 1: Enhance an Old Photo
-
-**Goal**: Restore an old, faded photograph with noise and compression artifacts.
-
-**Workflow**:
-1. **Topaz Denoise** → **Topaz Enhance**
-
-**Denoise Settings**:
-- Model: `Strong` or `Extreme`
-- Strength: `0.6-0.8`
-- Minor Deblur: `0.3-0.5`
-- Original Detail: `0.6-0.8`
-
-**Enhance Settings**:
-- Model: `High Fidelity V2`
-- Fix Compression: `0.5-0.7`
-- Face Enhancement: `True` (if faces present)
-- Face Enhancement Strength: `0.6-0.8`
-
-### Recipe 2: Clean Up a Low-Light Photo
-
-**Goal**: Remove noise from a photo taken in low light conditions.
-
-**Workflow**:
-1. **Topaz Denoise** only
-
-**Settings**:
-- Model: `Normal` or `Strong`
-- Strength: `0.4-0.6`
-- Minor Deblur: `0.2-0.4`
-- Original Detail: `0.7-0.9`
-
-### Recipe 3: Enhance a Web Image
-
-**Goal**: Improve a low-resolution image downloaded from the web.
-
-**Workflow**:
-1. **Topaz Enhance** only
-
-**Settings**:
-- Model: `Low Resolution V2`
-- Sharpen: `0.2-0.4`
-- Fix Compression: `0.4-0.6`
-- Face Enhancement: `True` (if faces present)
-
-### Recipe 4: Professional Portrait Touch-Up
-
-**Goal**: Enhance a portrait with focus on facial details.
-
-**Workflow**:
-1. **Topaz Enhance** only
-
-**Settings**:
-- Model: `Standard V2`
-- Sharpen: `0.1-0.3`
-- Denoise: `0.1-0.3`
-- Face Enhancement: `True`
-- Face Enhancement Strength: `0.5-0.7`
-
-### Recipe 5: Restore a Heavily Compressed Image
-
-**Goal**: Fix an image with severe JPEG compression artifacts.
-
-**Workflow**:
-1. **Topaz Enhance** only
-
-**Settings**:
-- Model: `Standard V2` or `High Fidelity V2`
-- Fix Compression: `0.7-0.9`
-- Sharpen: `0.2-0.4`
-
-### Recipe 6: Maximum Quality Restoration
-
-**Goal**: Apply comprehensive restoration to a damaged image.
-
-**Workflow**:
-1. **Topaz Denoise** → **Topaz Enhance**
-
-**Denoise Settings**:
-- Model: `Strong`
-- Strength: `0.7`
-- Minor Deblur: `0.4`
-- Original Detail: `0.8`
-
-**Enhance Settings**:
-- Model: `High Fidelity V2`
-- Sharpen: `0.3`
-- Fix Compression: `0.6`
-- Face Enhancement: `True`
-- Face Enhancement Strength: `0.7`
-
-### Recipe 7: Creative Cinematic Enhancement ✨ NEW
-
-**Goal**: Transform a photo with cinematic, film-like qualities.
-
-**Workflow**:
-1. **Topaz Creative Enhance** only
-
-**Settings**:
-- Model: `Redefine`
-- Prompt: `"cinematic lighting, film grain, dramatic shadows, warm color grading"`
-- Autoprompt: `False`
-- Creativity: `4-5`
-- Texture: `3-4`
-- Focus Boost: `0.6-0.8`
-
-### Recipe 8: Artistic Photo Transformation ✨ NEW
-
-**Goal**: Create an artistic interpretation of a photograph.
-
-**Workflow**:
-1. **Topaz Creative Enhance** only
-
-**Settings**:
-- Model: `Redefine`
-- Autoprompt: `True`
-- Creativity: `5-6`
-- Texture: `4-5`
-- Focus Boost: `0.5-0.7`
-
-### Recipe 9: Vintage Photo Revival ✨ NEW
-
-**Goal**: Give modern photos a vintage, nostalgic look.
-
-**Workflow**:
-1. **Topaz Creative Enhance** only
-
-**Settings**:
-- Model: `Recovery V2`
-- Prompt: `"vintage film photography, warm tones, soft lighting, nostalgic mood"`
-- Autoprompt: `False`
-- Creativity: `3-4`
-- Texture: `2-3`
-- Focus Boost: `0.4-0.6`
-
-### Recipe 10: Ultimate Creative Restoration ✨ NEW
-
-**Goal**: Comprehensive restoration with creative enhancement.
-
-**Workflow**:
-1. **Topaz Denoise** → **Topaz Creative Enhance**
-
-**Denoise Settings**:
-- Model: `Strong`
-- Strength: `0.6`
-- Minor Deblur: `0.3`
-- Original Detail: `0.7`
-
-**Creative Enhance Settings**:
-- Model: `Recovery V2`
-- Autoprompt: `True`
-- Creativity: `4`
-- Texture: `4`
-- Focus Boost: `0.6`
-
----
-
-## 💡 Tips & Best Practices
-
-### Model Selection Guide
-
-**When to use each Denoise model**:
-- **Normal**: Digital camera noise, mild ISO noise
-- **Strong**: Scan artifacts, moderate noise from older cameras
-- **Extreme**: Heavy film grain, severe digital noise, very old photos
-
-**When to use each Enhance model**:
-- **Standard V2**: Most photographs, general enhancement
-- **Low Resolution V2**: Social media images, web graphics, thumbnails
-- **CGI**: Digital art, 3D renders, illustrations
-- **High Fidelity V2**: Professional photography, detailed texture preservation
-- **Text Refine**: Screenshots, documents, images with text
-
-**When to use each Creative Enhance model** ✨:
-- **Redefine**: Artistic enhancement, creative interpretation, modern photos
-- **Recovery**: Damaged photo restoration with creative elements
-- **Recovery V2**: Advanced restoration with maximum quality and creative enhancement
-
-### Parameter Tuning Tips
-
-1. **Start Conservative**: Begin with lower values and increase gradually
-2. **Preview Effects**: Use the status messages to track processing parameters
-3. **Chain Thoughtfully**: Denoise first, then enhance for best results
-4. **Face Priority**: Enable face enhancement for portraits and group photos
-5. **Format Choice**: Use PNG for archival quality, JPEG for smaller files
-6. **Creative Balance**: Higher creativity = more dramatic changes, use sparingly
-7. **Prompt Crafting**: Be specific but concise in creative prompts
-8. **Seed Consistency**: Use seeds for reproducible creative results
-
-### Workflow Optimization
-
-- **Single Pass**: For light enhancement, use Enhance alone
-- **Two Pass**: For heavily degraded images, use Denoise → Enhance
-- **Creative Pass**: For artistic effects, use Creative Enhance alone or after cleanup
-- **Three Pass Ultimate**: Denoise → Enhance → Creative Enhance for maximum quality
-- **Batch Processing**: Connect multiple images to process sets efficiently
-- **Quality Check**: Monitor the hash values in status to ensure different images are processed
-
----
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**"No input image provided"**
-- Ensure an image is connected to the input
-- Check that the image artifact is valid
-- Verify the connection is properly established
-
-**"API key not found"**
-- Set the `TOPAZ_LABS_API_KEY` environment variable
-- Restart Griptape Nodes after setting the environment variable
-- Verify the API key is valid and active
-
-**"Request timed out"**
-- Large images may take longer to process
-- Creative models take longer than standard models
-- Check your internet connection
-- Verify Topaz Labs API service status
-
-**"Authentication failed"**
-- Check your API key is correct
-- Verify your Topaz Labs account is active
-- Ensure you have sufficient API credits
-
-**Creative Enhancement Issues**:
-- Empty prompts with autoprompt disabled may cause errors
-- Very high creativity settings may produce unexpected results
-- Generative models consume more API credits
-
-### Debug Information
-
-All nodes provide detailed status information:
-- Image type and identifier
-- Image size in bytes
-- Processing hash (to verify different images)
-- Current processing stage
-- Success/error messages
-
-Use this information to track processing and identify issues.
-
----
-
-## 📋 API Limits & Considerations
-
-- **File Size**: Images are processed as uploaded, larger files take longer
-- **Rate Limits**: Respect Topaz Labs API rate limiting
-- **Credits**: Processing consumes API credits based on image size and complexity
-- **Timeout**: Large images may timeout after 5 minutes
-- **Formats**: Supports common formats (JPEG, PNG, WebP)
-- **Generative Models**: Creative enhance models consume more credits and processing time
-
----
-
-## 🤝 Support
-
-For issues specific to these Griptape nodes:
-- Check the troubleshooting section above
-- Review the debug information in node status messages
-- Verify your API key and network connectivity
-
-For Topaz Labs API issues:
-- Visit [Topaz Labs Support](https://www.topazlabs.com/support)
-- Check your account status and API credits
-
-For Griptape Nodes platform issues:
-- Visit [Griptape Nodes Documentation](https://www.griptapenodes.com/)
-
----
-
-## 📄 License
-
-This node library is provided as-is for use with Griptape Nodes and the Topaz Labs API. Please ensure you comply with Topaz Labs' terms of service when using their API.
+Reduces image noise using advanced AI algorithms while preserving fine details and image sharpness.
+
+**Parameters:**
+- **Input Image**: Accepts ImageArtifact or ImageUrlArtifact
+- **Model**: Choose from:
+  - `Normal` (balanced noise reduction, default)
+  - `Strong` (aggressive noise reduction)
+  - `Extreme` (maximum noise reduction for heavily degraded images)
+- **Strength**: Noise reduction intensity (0.01-1.0, default: 0.5)
+- **Minor Deblur**: Slight sharpening to counteract softening (0.01-1.0, default: 0.1)
+- **Original Detail**: Preserve original image details (0.0-1.0, default: 0.5)
+- **Output Format**: JPEG, PNG, or WebP
+
+**Best for:**
+- High ISO photography
+- Scanned documents or old photos
+- Low-light images with noise
+- Preparing images for further enhancement
+
+### Topaz Enhance
+
+Enhances image sharpness, clarity, and overall quality using AI upscaling and enhancement algorithms.
+
+**Parameters:**
+- **Input Image**: Accepts ImageArtifact or ImageUrlArtifact
+- **Model**: Choose from:
+  - `Standard V2` (balanced enhancement, default)
+  - `Low Resolution V2` (optimized for low-res images)
+  - `CGI` (specialized for computer-generated imagery)
+  - `High Fidelity V2` (maximum quality preservation)
+  - `Text Refine` (optimized for text and line art)
+- **Sharpen**: Edge sharpening intensity (0.0-1.0, default: 0.0)
+- **Denoise**: Built-in noise reduction (0.0-1.0, default: 0.0)
+- **Fix Compression**: Repair JPEG compression artifacts (0.0-1.0, default: 0.0)
+- **Face Enhancement**: Enable AI face enhancement (boolean, default: False)
+- **Face Enhancement Strength**: Face enhancement intensity (0.0-1.0, default: 0.5)
+- **Output Format**: JPEG, PNG, or WebP
+
+**Best for:**
+- Upscaling images for print
+- Enhancing web images
+- Sharpening soft or blurry photos
+- Professional photo editing workflows
+
+### Topaz Creative Enhance
+
+Apply creative AI enhancement with advanced artistic control and specialized face enhancement capabilities.
+
+**Parameters:**
+- **Input Image**: Accepts ImageArtifact or ImageUrlArtifact
+- **Model**: Choose from:
+  - `High Fidelity V2` (maximum quality with creative enhancement, default)
+  - `CGI` (specialized for computer-generated imagery)
+  - `Text Refine` (optimized for text and line art)
+- **Sharpen**: Creative sharpening intensity (0.0-1.0, default: 0.0)
+- **Denoise**: Intelligent noise reduction (0.0-1.0, default: 0.0)
+- **Fix Compression**: Advanced compression artifact repair (0.0-1.0, default: 0.0)
+- **Face Enhancement**: AI-powered face enhancement (boolean, default: True)
+- **Face Enhancement Strength**: Face enhancement intensity (0.0-1.0, default: 0.7)
+- **Output Format**: JPEG, PNG, or WebP
+
+**Best for:**
+- Portrait photography enhancement
+- Creative photo editing
+- Artistic image processing
+- Professional headshots and portraits
+
+### Topaz Frame Interpolation
+
+Convert videos to higher frame rates with smooth motion interpolation and slow motion effects.
+
+**Parameters:**
+- **Input Video**: Accepts VideoUrlArtifact or BlobArtifact
+- **Model**: Choose from:
+  - `apo-8` (popular 60fps conversion, default)
+  - `gcg-5` (general content generation)
+  - `ghq-5` (high-quality generation)
+  - `iris-2` / `iris-3` (intelligent resolution improvement)
+  - `nxf-1` (next-gen frame processing)
+  - `nyx-3` (advanced motion processing)
+- **Target FPS**: Output frame rate (23.976 to 120 fps)
+- **Slow Motion Factor**: Slow motion multiplier (1-8x)
+- **Remove Duplicate Frames**: Intelligent duplicate frame detection
+- **Duplicate Threshold**: Detection sensitivity (0.0-1.0)
+- **Output Settings**: Container format, codecs, audio handling
+
+**Best for:**
+- Converting 30fps to 60fps for smooth playback
+- Creating slow motion effects
+- Improving motion in low frame rate content
+- Gaming and sports video enhancement
+
+### Topaz Video Upscale
+
+Enhance video resolution and quality using AI-powered upscaling with detail recovery.
+
+**Parameters:**
+- **Input Video**: Accepts VideoUrlArtifact or BlobArtifact
+- **Model**: Choose from:
+  - `prob-4` (professional broadcast quality, default)
+  - `rhea-1` (generative AI 4x upscaling)
+  - `aaa-9` (high-quality with detail enhancement)
+  - `ahq-12` (archival quality upscaling)
+  - And more specialized models
+- **Upscale Factor**: 2x, 4x, or Auto
+- **Detail Enhancement**: Fine detail and texture enhancement (0.0-1.0)
+- **Sharpening**: Edge sharpening intensity (0.0-1.0)
+- **Noise Reduction**: Built-in noise reduction (0.0-1.0)
+- **Compression Recovery**: Remove compression artifacts (0.0-1.0)
+- **Focus Fix**: Blur and focus correction (0.0-1.0)
+- **Original Detail Recovery**: Recover lost details (0.0-1.0)
+
+**Best for:**
+- Upscaling low-resolution videos
+- Enhancing old or degraded footage
+- Preparing content for larger displays
+- Archival and restoration projects
+
+### Topaz Video Denoise
+
+Remove noise and compression artifacts from videos while maintaining temporal consistency.
+
+**Parameters:**
+- **Input Video**: Accepts VideoUrlArtifact or BlobArtifact
+- **Model**: Choose from:
+  - `nyx-3` (advanced motion processing with auto denoising, default)
+  - `ddv-3` (digital video denoising)
+  - `dtd-4` / `dtv-4` (digital temporal denoising)
+  - `chf-3` / `chr-2` (compression artifact removal)
+- **Auto Mode**: Automatic processing based on content analysis
+- **Auto Type**: Relative, Absolute, or Custom processing
+- **Noise Intensity**: Manual noise reduction intensity (0.0-1.0)
+- **Compression Recovery**: Remove compression artifacts (0.0-1.0)
+- **Detail Preservation**: Preserve fine details (0.0-1.0)
+- **Temporal Consistency**: Maintain frame-to-frame consistency (0.0-1.0)
+- **Sharpening**: Mild sharpening to counteract softening (0.0-1.0)
+
+**Best for:**
+- Cleaning up noisy footage from high ISO recordings
+- Removing compression artifacts from heavily compressed videos
+- Restoring old or damaged video content
+- Preprocessing for further video editing
+
+## Model Comparison
+
+### When to Use Each Node
+
+**Use Topaz Denoise for:**
+- Noisy images from high ISO settings
+- Scanned photos or documents
+- Low-light photography
+- Preprocessing before other enhancements
+
+**Use Topaz Enhance for:**
+- General image sharpening and clarity
+- Upscaling for print or display
+- Fixing soft or slightly blurry images
+- Professional photo workflows
+
+**Use Topaz Creative Enhance for:**
+- Portrait photography
+- Creative artistic effects
+- Face-focused enhancement
+- High-end photo retouching
+
+**Use Topaz Frame Interpolation for:**
+- Converting videos to 60fps or higher
+- Creating smooth slow motion effects
+- Improving motion in low frame rate content
+- Gaming and sports video enhancement
+
+**Use Topaz Video Upscale for:**
+- Upscaling low-resolution videos (2x or 4x)
+- Enhancing old or degraded footage
+- Preparing content for larger displays
+- Archival and restoration projects
+
+**Use Topaz Video Denoise for:**
+- Cleaning up noisy footage
+- Removing compression artifacts
+- Restoring old or damaged video content
+- Preprocessing for further video editing
+
+## Example Workflows
+
+### Basic Image Enhancement
+
+1. Add a **Topaz Enhance** node
+2. Choose your model (`Standard V2` for general use)
+3. Adjust sharpening and denoising as needed
+4. Enable face enhancement for portraits
+5. Run the workflow
+6. The enhanced image will be available as an ImageArtifact output
+
+### Noise Reduction Pipeline
+
+1. **Start with Topaz Denoise**: Remove noise first with appropriate model strength
+2. **Follow with Topaz Enhance**: Sharpen and enhance the cleaned image
+3. **Fine-tune Parameters**: Adjust settings based on image content and desired output
+
+### Portrait Enhancement Workflow
+
+1. **Optional: Topaz Denoise** for noisy portraits
+2. **Topaz Creative Enhance**: Use with face enhancement enabled
+3. **Adjust Face Enhancement Strength**: Higher values for more dramatic improvements
+
+### Video Enhancement Pipeline
+
+1. **Start with Topaz Video Denoise**: Clean up noisy or compressed footage
+2. **Follow with Topaz Video Upscale**: Enhance resolution and detail
+3. **Optional: Topaz Frame Interpolation**: Convert to higher frame rates for smooth motion
+
+### 60fps Conversion Workflow
+
+1. Add a **Topaz Frame Interpolation** node
+2. Choose `apo-8` model for reliable 60fps conversion
+3. Set target FPS to 60
+4. Enable duplicate frame removal
+5. Configure output settings (H265 recommended for quality)
+
+### Video Restoration Workflow
+
+1. **Topaz Video Denoise**: Remove noise and compression artifacts first
+2. **Topaz Video Upscale**: Enhance resolution and recover details
+3. **Fine-tune Parameters**: Adjust based on source material quality
+
+## Advanced Features
+
+### Parameter Optimization
+
+Each node offers precise control over enhancement parameters:
+
+- **Strength/Intensity Controls**: Fine-tune the effect strength for natural results
+- **Detail Preservation**: Balance enhancement with original image characteristics  
+- **Format Selection**: Choose optimal output format for your use case
+
+### Chaining Nodes
+
+Topaz nodes work excellently in sequence:
+
+**Image Processing Chains:**
+1. **Denoise** → **Enhance** → **Creative Enhance** for maximum quality
+2. **Enhance** → **Creative Enhance** for portraits
+3. **Denoise** → **Enhance** for general cleanup and sharpening
+
+**Video Processing Chains:**
+1. **Video Denoise** → **Video Upscale** → **Frame Interpolation** for complete enhancement
+2. **Video Denoise** → **Video Upscale** for quality improvement
+3. **Frame Interpolation** alone for smooth motion conversion
+4. **Video Upscale** alone for resolution enhancement
+
+### Quality vs Speed Trade-offs
+
+**Image Processing:**
+- **Normal/Standard models**: Faster processing, good quality
+- **Strong/High Fidelity models**: Slower processing, maximum quality
+- **Specialized models**: Optimized for specific content types
+
+**Video Processing:**
+- **Auto mode**: Faster processing with intelligent parameter selection
+- **Manual mode**: Full control but requires parameter tuning
+- **Generative models** (like rhea-1): Slower but highest quality upscaling
+- **Temporal models**: Better for maintaining consistency across frames
+
+## Output Formats
+
+**Image Output Formats:**
+- **JPEG**: Smaller file size, good for web use
+- **PNG**: Lossless compression, best for archival
+- **WebP**: Modern format with excellent compression
+
+**Video Output Formats:**
+- **MP4**: Most compatible, good compression
+- **MOV**: High quality, good for editing workflows
+- **AVI**: Uncompressed option for maximum quality
+
+**Video Codecs:**
+- **H.265 (HEVC)**: Best compression and quality (recommended)
+- **H.264**: Wide compatibility
+- **ProRes**: Professional editing workflows
+
+Choose based on your downstream workflow requirements and compatibility needs.
+
+## API Documentation
+
+For detailed API documentation and advanced usage, visit the [Topaz Labs API Documentation](https://www.topazlabs.com/).
