@@ -2,13 +2,13 @@
 
 from typing import Dict, Any, Optional
 from griptape.artifacts import ImageArtifact
-from griptape.nodes import BaseNode
+from griptape_nodes.exe_types.node_types import DataNode, BaseNode
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
 
-from topazlabs.base_topaz_node import BaseTopazNode
-from topazlabs.utils.constants import ENHANCE_MODELS, ENHANCE_DEFAULTS, PARAMETER_RANGES
+from base_topaz_node import BaseTopazNode
+from constants import ENHANCE_MODELS, ENHANCE_DEFAULTS, PARAMETER_RANGES
 
 
 class TopazEnhanceNode(BaseTopazNode):

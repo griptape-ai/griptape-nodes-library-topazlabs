@@ -1,5 +1,5 @@
 {
-    "name": "Topaz Labs Image Enhancement Library",
+    "name": "Topaz Labs",
     "library_schema_version": "0.1.0",
     "settings": [
         {
@@ -12,16 +12,14 @@
     ],
     "metadata": {
         "author": "Griptape",
-        "description": "Nodes for image enhancement and denoising using Topaz Labs API",
+        "description": "Collection of nodes for Topaz Labs image enhancement and processing operations.",
         "library_version": "0.1.0",
         "engine_version": "0.1.0",
         "tags": [
-            "Griptape",
+            "Image Processing",
+            "Enhancement",
             "AI",
-            "Topaz Labs",
-            "Image Enhancement",
-            "Image Denoising",
-            "Image Processing"
+            "Topaz Labs"
         ],
         "dependencies": {
             "pip_dependencies": [
@@ -31,9 +29,9 @@
     },
     "categories": [
         {
-            "Image Processing": {
+            "Topaz Labs": {
                 "color": "border-blue-500",
-                "title": "Image Processing",
+                "title": "Topaz Labs",
                 "description": "Image enhancement and processing nodes using Topaz Labs API",
                 "icon": "Image"
             }
@@ -44,7 +42,7 @@
             "class_name": "TopazDenoiseNode",
             "file_path": "topaz_denoise_node.py",
             "metadata": {
-                "category": "Image Processing",
+                "category": "Topaz Labs",
                 "description": "Reduces image noise using Topaz Labs Denoise API with adjustable strength and detail preservation.",
                 "display_name": "Topaz Denoise"
             }
@@ -53,7 +51,7 @@
             "class_name": "TopazEnhanceNode",
             "file_path": "topaz_enhance_node.py",
             "metadata": {
-                "category": "Image Processing",
+                "category": "Topaz Labs",
                 "description": "Enhances image sharpness, clarity, and facial details using Topaz Labs Enhance API.",
                 "display_name": "Topaz Enhance"
             }
@@ -62,7 +60,7 @@
             "class_name": "TopazCreativeEnhanceNode",
             "file_path": "topaz_creative_enhance_node.py",
             "metadata": {
-                "category": "Image Processing",
+                "category": "Topaz Labs",
                 "description": "Creative image enhancement using generative AI models with prompt-based control and artistic effects.",
                 "display_name": "Topaz Creative Enhance"
             }

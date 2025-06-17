@@ -1,14 +1,14 @@
-"""Node for Topaz Labs creative image enhancement operations."""
+"""Node for Topaz Labs creative enhancement operations."""
 
 from typing import Dict, Any, Optional
 from griptape.artifacts import ImageArtifact
-from griptape.nodes import BaseNode
+from griptape_nodes.exe_types.node_types import DataNode, BaseNode
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
 
-from topazlabs.base_topaz_node import BaseTopazNode
-from topazlabs.utils.constants import CREATIVE_ENHANCE_MODELS, CREATIVE_ENHANCE_DEFAULTS, PARAMETER_RANGES
+from base_topaz_node import BaseTopazNode
+from constants import ENHANCE_GENERATIVE_MODELS, ENHANCE_CREATIVE_DEFAULTS, PARAMETER_RANGES
 
 
 class TopazCreativeEnhanceNode(BaseTopazNode):
@@ -29,9 +29,9 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 name="model",
                 tooltip="Generative model for creative enhancement",
                 type=ParameterTypeBuiltin.STR.value,
-                default_value=CREATIVE_ENHANCE_DEFAULTS["model"],
+                default_value=ENHANCE_CREATIVE_DEFAULTS["model"],
                 allowed_modes={ParameterMode.PROPERTY},
-                traits={Options(choices=CREATIVE_ENHANCE_MODELS)},
+                traits={Options(choices=ENHANCE_GENERATIVE_MODELS)},
                 ui_options={"display_name": "Creative Model"}
             )
         )
@@ -42,7 +42,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 name="prompt",
                 tooltip="Text prompt to guide the creative enhancement (leave empty to use autoprompt)",
                 type=ParameterTypeBuiltin.STR.value, 
-                default_value=CREATIVE_ENHANCE_DEFAULTS["prompt"],
+                default_value=ENHANCE_CREATIVE_DEFAULTS["prompt"],
                 allowed_modes={ParameterMode.PROPERTY, ParameterMode.INPUT},
                 ui_options={
                     "display_name": "Creative Prompt",
@@ -57,7 +57,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 name="autoprompt",
                 tooltip="Let the AI automatically generate a prompt based on image content",
                 type=ParameterTypeBuiltin.BOOL.value,
-                default_value=CREATIVE_ENHANCE_DEFAULTS["autoprompt"],
+                default_value=ENHANCE_CREATIVE_DEFAULTS["autoprompt"],
                 allowed_modes={ParameterMode.PROPERTY},
                 ui_options={"display_name": "Auto Prompt"}
             )
@@ -70,7 +70,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 name="creativity",
                 tooltip="Level of creative interpretation (1=conservative, 6=highly creative)",
                 type=ParameterTypeBuiltin.INT.value,
-                default_value=CREATIVE_ENHANCE_DEFAULTS["creativity"],
+                default_value=ENHANCE_CREATIVE_DEFAULTS["creativity"],
                 allowed_modes={ParameterMode.PROPERTY},
                 traits={Slider(min_val=creativity_range[0], max_val=creativity_range[1])},
                 ui_options={
@@ -87,7 +87,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 name="texture",
                 tooltip="Level of texture enhancement (1=minimal, 5=maximum)",
                 type=ParameterTypeBuiltin.INT.value,
-                default_value=CREATIVE_ENHANCE_DEFAULTS["texture"],
+                default_value=ENHANCE_CREATIVE_DEFAULTS["texture"],
                 allowed_modes={ParameterMode.PROPERTY},
                 traits={Slider(min_val=texture_range[0], max_val=texture_range[1])},
                 ui_options={
@@ -103,7 +103,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 name="seed",
                 tooltip="Random seed for reproducible results (leave empty for random)",
                 type=ParameterTypeBuiltin.INT.value,
-                default_value=CREATIVE_ENHANCE_DEFAULTS["seed"],
+                default_value=ENHANCE_CREATIVE_DEFAULTS["seed"],
                 allowed_modes={ParameterMode.PROPERTY},
                 ui_options={"display_name": "Seed"}
             )
@@ -116,7 +116,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 name="focus_boost",
                 tooltip="Boost focus and sharpness in key areas",
                 type=ParameterTypeBuiltin.FLOAT.value,
-                default_value=CREATIVE_ENHANCE_DEFAULTS["focus_boost"],
+                default_value=ENHANCE_CREATIVE_DEFAULTS["focus_boost"],
                 allowed_modes={ParameterMode.PROPERTY},
                 traits={Slider(min_val=focus_range[0], max_val=focus_range[1])},
                 ui_options={

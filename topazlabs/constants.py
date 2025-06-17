@@ -31,6 +31,9 @@ ENHANCE_GENERATIVE_MODELS = [
     "Recovery V2"
 ]
 
+# Creative enhance models (alias for generative models)
+CREATIVE_ENHANCE_MODELS = ENHANCE_GENERATIVE_MODELS
+
 # Parameter defaults and ranges
 DENOISE_DEFAULTS = {
     "model": "Normal",
@@ -58,6 +61,9 @@ ENHANCE_CREATIVE_DEFAULTS = {
     "seed": None,
     "focus_boost": 0.5
 }
+
+# Creative enhance defaults (alias for consistency)
+CREATIVE_ENHANCE_DEFAULTS = ENHANCE_CREATIVE_DEFAULTS
 
 # Parameter ranges
 PARAMETER_RANGES = {

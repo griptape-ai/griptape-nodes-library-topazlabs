@@ -1,12 +1,14 @@
 """Base node for Topaz Labs operations."""
 
 from typing import Dict, Any, Optional
-from griptape.artifacts import ImageArtifact
-from griptape.nodes import BaseNode
+from griptape.artifacts import ImageArtifact, ImageUrlArtifact
+from griptape_nodes.exe_types.node_types import DataNode, BaseNode
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
+from griptape_nodes.traits.options import Options
+from griptape_nodes.traits.slider import Slider
 
-from topazlabs.utils.constants import SERVICE, API_KEY_ENV_VAR, OUTPUT_FORMATS
-from topazlabs.utils.topaz_client import TopazClient
+from constants import SERVICE, API_KEY_ENV_VAR, OUTPUT_FORMATS
+from topaz_client import TopazClient
 
 
 class BaseTopazNode(DataNode):
