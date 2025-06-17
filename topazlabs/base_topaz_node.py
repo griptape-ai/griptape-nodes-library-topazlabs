@@ -165,19 +165,28 @@ class BaseTopazNode(DataNode):
             Exception: If saving fails
         """
         try:
+            # Import inside method to avoid caching issues
+            from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
+            
             # Get output format
             output_format = self.get_parameter_value("output_format") or "jpeg"
             
-            # Create filename with proper extension
-            filename = f"{filename_hint}.{output_format}"
+            # Generate unique filename with timestamp and hash (following kontext pattern)
+            import hashlib
+            import time
             
-            # Save using StaticFilesManager
-            image_url = GriptapeNodes.StaticFilesManager().save_static_file(
+            timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
+            content_hash = hashlib.md5(image_data).hexdigest()[:8]  # Short hash of content
+            filename = f"{filename_hint}_{timestamp}_{content_hash}.{output_format.lower()}"
+            
+            # Save to managed file location and get URL
+            static_url = GriptapeNodes.StaticFilesManager().save_static_file(
                 image_data, filename
             )
             
-            # Create and return ImageUrlArtifact
-            return ImageUrlArtifact(value=image_url, name=filename)
+            return ImageUrlArtifact(
+                value=static_url, name=f"{filename_hint}_{timestamp}"
+            )
             
         except Exception as e:
             raise Exception(f"Failed to save output image: {str(e)}")

@@ -24,11 +24,11 @@ ENHANCE_MODELS = [
     "Text Refine"
 ]
 
-# Generative enhance models (slower, creative)
+# Generative enhance models (slower, creative) - Updated to use GAN-compatible models
 ENHANCE_GENERATIVE_MODELS = [
-    "Redefine",
-    "Recovery",
-    "Recovery V2"
+    "High Fidelity V2",
+    "CGI", 
+    "Text Refine"
 ]
 
 # Creative enhance models (alias for generative models)
@@ -51,15 +51,14 @@ ENHANCE_DEFAULTS = {
     "face_enhancement_strength": 0.5
 }
 
-# Creative enhancement defaults for generative models
+# Creative enhancement defaults for generative models - Updated for GAN models
 ENHANCE_CREATIVE_DEFAULTS = {
-    "model": "Redefine",
-    "prompt": "",
-    "autoprompt": True,
-    "creativity": 3,
-    "texture": 3,
-    "seed": None,
-    "focus_boost": 0.5
+    "model": "High Fidelity V2",
+    "sharpen": 0.0,
+    "denoise": 0.0,
+    "fix_compression": 0.0,
+    "face_enhancement": True,
+    "face_enhancement_strength": 0.7
 }
 
 # Creative enhance defaults (alias for consistency)

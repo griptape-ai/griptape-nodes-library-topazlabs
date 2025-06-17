@@ -27,7 +27,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
         self.add_parameter(
             Parameter(
                 name="model",
-                tooltip="Generative model for creative enhancement",
+                tooltip="Creative enhancement model (GAN-based)",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value=ENHANCE_CREATIVE_DEFAULTS["model"],
                 allowed_modes={ParameterMode.PROPERTY},
@@ -36,92 +36,79 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
             )
         )
         
-        # Prompt for creative direction
+        # Sharpen parameter
         self.add_parameter(
             Parameter(
-                name="prompt",
-                tooltip="Text prompt to guide the creative enhancement (leave empty to use autoprompt)",
-                type=ParameterTypeBuiltin.STR.value, 
-                default_value=ENHANCE_CREATIVE_DEFAULTS["prompt"],
-                allowed_modes={ParameterMode.PROPERTY, ParameterMode.INPUT},
-                ui_options={
-                    "display_name": "Creative Prompt",
-                    "multiline": True
-                }
-            )
-        )
-        
-        # Autoprompt toggle
-        self.add_parameter(
-            Parameter(
-                name="autoprompt",
-                tooltip="Let the AI automatically generate a prompt based on image content",
-                type=ParameterTypeBuiltin.BOOL.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["autoprompt"],
-                allowed_modes={ParameterMode.PROPERTY},
-                ui_options={"display_name": "Auto Prompt"}
-            )
-        )
-        
-        # Creativity level
-        creativity_range = PARAMETER_RANGES["creativity"]
-        self.add_parameter(
-            Parameter(
-                name="creativity",
-                tooltip="Level of creative interpretation (1=conservative, 6=highly creative)",
-                type=ParameterTypeBuiltin.INT.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["creativity"],
-                allowed_modes={ParameterMode.PROPERTY},
-                traits={Slider(min_val=creativity_range[0], max_val=creativity_range[1])},
-                ui_options={
-                    "display_name": "Creativity Level",
-                    "step": 1
-                }
-            )
-        )
-        
-        # Texture enhancement
-        texture_range = PARAMETER_RANGES["texture"]
-        self.add_parameter(
-            Parameter(
-                name="texture",
-                tooltip="Level of texture enhancement (1=minimal, 5=maximum)",
-                type=ParameterTypeBuiltin.INT.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["texture"],
-                allowed_modes={ParameterMode.PROPERTY},
-                traits={Slider(min_val=texture_range[0], max_val=texture_range[1])},
-                ui_options={
-                    "display_name": "Texture Enhancement",
-                    "step": 1
-                }
-            )
-        )
-        
-        # Random seed for reproducibility
-        self.add_parameter(
-            Parameter(
-                name="seed",
-                tooltip="Random seed for reproducible results (leave empty for random)",
-                type=ParameterTypeBuiltin.INT.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["seed"],
-                allowed_modes={ParameterMode.PROPERTY},
-                ui_options={"display_name": "Seed"}
-            )
-        )
-        
-        # Focus boost
-        focus_range = PARAMETER_RANGES["focus_boost"]
-        self.add_parameter(
-            Parameter(
-                name="focus_boost",
-                tooltip="Boost focus and sharpness in key areas",
+                name="sharpen",
+                tooltip="Sharpen the image (0.0 = no sharpening, 1.0 = maximum sharpening)",
                 type=ParameterTypeBuiltin.FLOAT.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["focus_boost"],
+                default_value=ENHANCE_CREATIVE_DEFAULTS["sharpen"],
                 allowed_modes={ParameterMode.PROPERTY},
-                traits={Slider(min_val=focus_range[0], max_val=focus_range[1])},
+                traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={
-                    "display_name": "Focus Boost",
-                    "step": 0.05
+                    "display_name": "Sharpen",
+                    "step": 0.1
+                }
+            )
+        )
+        
+        # Denoise parameter
+        self.add_parameter(
+            Parameter(
+                name="denoise",
+                tooltip="Reduce noise in the image (0.0 = no denoising, 1.0 = maximum denoising)",
+                type=ParameterTypeBuiltin.FLOAT.value,
+                default_value=ENHANCE_CREATIVE_DEFAULTS["denoise"],
+                allowed_modes={ParameterMode.PROPERTY},
+                traits={Slider(min_val=0.0, max_val=1.0)},
+                ui_options={
+                    "display_name": "Denoise",
+                    "step": 0.1
+                }
+            )
+        )
+        
+        # Fix compression parameter
+        self.add_parameter(
+            Parameter(
+                name="fix_compression",
+                tooltip="Fix compression artifacts (0.0 = no fix, 1.0 = maximum fix)",
+                type=ParameterTypeBuiltin.FLOAT.value,
+                default_value=ENHANCE_CREATIVE_DEFAULTS["fix_compression"],
+                allowed_modes={ParameterMode.PROPERTY},
+                traits={Slider(min_val=0.0, max_val=1.0)},
+                ui_options={
+                    "display_name": "Fix Compression",
+                    "step": 0.1
+                }
+            )
+        )
+        
+        # Face enhancement toggle
+        self.add_parameter(
+            Parameter(
+                name="face_enhancement",
+                tooltip="Enable face enhancement",
+                type=ParameterTypeBuiltin.BOOL.value,
+                default_value=ENHANCE_CREATIVE_DEFAULTS["face_enhancement"],
+                allowed_modes={ParameterMode.PROPERTY},
+                ui_options={"display_name": "Face Enhancement"}
+            )
+        )
+        
+        # Face enhancement strength
+        face_strength_range = PARAMETER_RANGES["face_enhancement_strength"]
+        self.add_parameter(
+            Parameter(
+                name="face_enhancement_strength",
+                tooltip="Strength of face enhancement when enabled",
+                type=ParameterTypeBuiltin.FLOAT.value,
+                default_value=ENHANCE_CREATIVE_DEFAULTS["face_enhancement_strength"],
+                allowed_modes={ParameterMode.PROPERTY},
+                traits={Slider(min_val=face_strength_range[0], max_val=face_strength_range[1])},
+                ui_options={
+                    "display_name": "Face Enhancement Strength",
+                    "step": 0.1
                 }
             )
         )
@@ -148,35 +135,27 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
             
             # Gather parameters
             model = self.get_parameter_value("model")
-            prompt = self.get_parameter_value("prompt")
-            autoprompt = self.get_parameter_value("autoprompt")
-            creativity = self.get_parameter_value("creativity")
-            texture = self.get_parameter_value("texture")
-            seed = self.get_parameter_value("seed")
-            focus_boost = self.get_parameter_value("focus_boost")
+            sharpen = self.get_parameter_value("sharpen")
+            denoise = self.get_parameter_value("denoise")
+            fix_compression = self.get_parameter_value("fix_compression")
+            face_enhancement = self.get_parameter_value("face_enhancement")
+            face_enhancement_strength = self.get_parameter_value("face_enhancement_strength")
             output_format = self.get_parameter_value("output_format")
             
             # Prepare API parameters
             api_params = {
                 "model": model,
                 "output_format": output_format,
-                "autoprompt": autoprompt,
-                "creativity": creativity,
-                "texture": texture,
-                "focus_boost": focus_boost
+                "sharpen": sharpen,
+                "denoise": denoise,
+                "fix_compression": fix_compression,
+                "face_enhancement": face_enhancement,
+                "face_enhancement_strength": face_enhancement_strength
             }
-            
-            # Add prompt if provided and autoprompt is disabled
-            if not autoprompt and prompt and prompt.strip():
-                api_params["prompt"] = prompt.strip()
-            
-            # Add seed if provided
-            if seed is not None:
-                api_params["seed"] = seed
             
             # Create API client and make request
             with self._get_topaz_client() as client:
-                processed_image_data = client.enhance_gen(
+                processed_image_data = client.enhance(
                     image_data=image_data,
                     **api_params
                 )
