@@ -1,23 +1,12 @@
-"""Base class for Topaz Labs nodes."""
+"""Base node for Topaz Labs operations."""
 
-import sys
-import os
-from typing import Any
-
-# Add parent directory to path to enable topazlabs imports
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-
-from griptape_nodes.exe_types.node_types import DataNode
+from typing import Dict, Any, Optional
+from griptape.artifacts import ImageArtifact
+from griptape.nodes import BaseNode
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
-from griptape.artifacts import ImageArtifact, ImageUrlArtifact
-from griptape_nodes.traits.options import Options
-from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
 
-from utils.constants import SERVICE, API_KEY_ENV_VAR, OUTPUT_FORMATS
-from utils.topaz_client import TopazClient
+from topazlabs.utils.constants import SERVICE, API_KEY_ENV_VAR, OUTPUT_FORMATS
+from topazlabs.utils.topaz_client import TopazClient
 
 
 class BaseTopazNode(DataNode):

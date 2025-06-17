@@ -42,7 +42,7 @@
     "nodes": [
         {
             "class_name": "TopazDenoiseNode",
-            "file_path": "nodes/topaz_denoise_node.py",
+            "file_path": "topaz_denoise_node.py",
             "metadata": {
                 "category": "Image Processing",
                 "description": "Reduces image noise using Topaz Labs Denoise API with adjustable strength and detail preservation.",
@@ -51,7 +51,7 @@
         },
         {
             "class_name": "TopazEnhanceNode",
-            "file_path": "nodes/topaz_enhance_node.py",
+            "file_path": "topaz_enhance_node.py",
             "metadata": {
                 "category": "Image Processing",
                 "description": "Enhances image sharpness, clarity, and facial details using Topaz Labs Enhance API.",
@@ -60,7 +60,7 @@
         },
         {
             "class_name": "TopazCreativeEnhanceNode",
-            "file_path": "nodes/topaz_creative_enhance_node.py",
+            "file_path": "topaz_creative_enhance_node.py",
             "metadata": {
                 "category": "Image Processing",
                 "description": "Creative image enhancement using generative AI models with prompt-based control and artistic effects.",

@@ -1,21 +1,14 @@
-"""Topaz Labs Enhance Node for improving image sharpness and clarity."""
+"""Node for Topaz Labs image enhancement operations."""
 
-import sys
-import os
-from typing import Any
-
-# Add parent directory to path to enable imports
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-
+from typing import Dict, Any, Optional
+from griptape.artifacts import ImageArtifact
+from griptape.nodes import BaseNode
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
 
-from nodes.base_topaz_node import BaseTopazNode
-from utils.constants import ENHANCE_MODELS, ENHANCE_DEFAULTS, PARAMETER_RANGES
+from topazlabs.base_topaz_node import BaseTopazNode
+from topazlabs.utils.constants import ENHANCE_MODELS, ENHANCE_DEFAULTS, PARAMETER_RANGES
 
 
 class TopazEnhanceNode(BaseTopazNode):
