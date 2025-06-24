@@ -13,8 +13,8 @@
     "metadata": {
         "author": "Griptape",
         "description": "Collection of nodes for Topaz Labs image and video enhancement and processing operations.",
-        "library_version": "0.1.0",
-        "engine_version": "0.1.0",
+        "library_version": "0.110",
+        "engine_version": "0.39.0",
         "tags": [
             "Image Processing",
             "Video Processing",
