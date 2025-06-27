@@ -28,8 +28,7 @@ class TopazClient:
         self.base_url = API_BASE_URL
         self.session = requests.Session()
         self.session.headers.update({
-            'X-API-Key': api_key,
-            'accept': 'image/jpeg'
+            'X-API-Key': api_key
         })
     
     def denoise(self, image_data: Union[bytes, BinaryIO], **params) -> bytes:
@@ -62,52 +61,138 @@ class TopazClient:
         """
         return self._make_request("enhance", image_data, **params)
     
-    def enhance_gen(self, image_data: Union[bytes, BinaryIO], **params) -> bytes:
-        """Call the enhance-gen endpoint for generative models.
+    def enhance_gen(self, image_data: Union[bytes, BinaryIO], poll_interval: int = 5, max_wait_time: int = 300, **params) -> bytes:
+        """
+        Orchestrates an asynchronous call to the enhance-gen endpoint.
+        This involves starting the job, polling for completion, and downloading the result.
         
         Args:
-            image_data: Image data as bytes or file-like object
-            **params: Additional parameters for the generative enhance API
+            image_data: Image data as bytes or file-like object.
+            poll_interval: Seconds to wait between status checks.
+            max_wait_time: Maximum seconds to wait for the job to complete.
+            **params: Additional parameters for the generative enhance API.
             
         Returns:
-            Binary image data
+            Binary image data of the processed image.
             
         Raises:
-            requests.HTTPError: If the API request fails
+            TimeoutError: If the job doesn't complete within max_wait_time.
+            requests.HTTPError: If any API request fails.
         """
-        return self._make_request("enhance-gen", image_data, **params)
-    
-    def _make_request(self, endpoint: str, image_data: Union[bytes, BinaryIO], **params) -> bytes:
+        # Step 1: Start the async job
+        start_response = self._make_request("enhance-gen/async", image_data, returns_json=True, **params)
+        process_id = start_response.get("process_id")
+        if not process_id:
+            raise ValueError("API response did not include a process_id.")
+
+        # Step 2: Poll for completion
+        start_time = time.time()
+        while time.time() - start_time < max_wait_time:
+            status_response = self.get_status(process_id)
+            status = status_response.get("status")
+
+            if status == "Completed":
+                # Step 3: Download the result
+                return self.download_output(process_id)
+            elif status == "Failed":
+                raise requests.HTTPError(f"Image processing failed with status: {status}")
+            
+            time.sleep(poll_interval)
+
+        raise TimeoutError(f"Image processing did not complete within {max_wait_time} seconds.")
+
+    def get_status(self, process_id: str) -> Dict[str, Any]:
+        """Get the status of a job."""
+        url = f"{self.base_url}/status/{process_id}"
+        try:
+            headers = {'Accept': 'application/json'}
+            response = self.session.get(url, timeout=30, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            self._handle_http_error(response, e)
+            raise
+
+    def download_output(self, process_id: str) -> bytes:
+        """Download the output of a completed job."""
+        # Get the download URL
+        url = f"{self.base_url}/download/{process_id}"
+        try:
+            headers = {'Accept': 'application/json'}
+            response = self.session.get(url, timeout=30, headers=headers)
+            response.raise_for_status()
+            download_info = response.json()
+            download_url = download_info.get("download_url")
+
+            if not download_url:
+                raise ValueError("Download endpoint did not return a download_url.")
+
+            # Download the actual image from the presigned URL
+            download_response = requests.get(download_url, timeout=300)
+            download_response.raise_for_status()
+            return download_response.content
+        
+        except requests.exceptions.HTTPError as e:
+            self._handle_http_error(response, e)
+            raise
+
+    def _make_request(self, endpoint: str, image_data: Union[bytes, BinaryIO], returns_json: bool = False, **params) -> Union[bytes, Dict]:
         """Make a request to the Topaz Labs API.
         
         Args:
             endpoint: API endpoint (denoise, enhance, enhance-gen, etc.)
             image_data: Image data as bytes or file-like object
+            returns_json: If True, parses and returns JSON response. Otherwise, returns content bytes.
             **params: Additional parameters for the API
             
         Returns:
-            Binary image data
+            Binary image data or JSON response dictionary
             
         Raises:
             requests.HTTPError: If the API request fails
         """
         url = f"{self.base_url}/{endpoint}"
         
+        print(f"DEBUG CLIENT: Received params: {params}")
+        
         # Prepare files dict for multipart upload
         files = {'image': ('image.jpg', image_data, 'image/jpeg')}
         
         # Filter out None values and prepare form data
-        form_data = {k: str(v) for k, v in params.items() if v is not None}
+        form_data = {}
+        for k, v in params.items():
+            if v is not None:
+                if isinstance(v, bool):
+                    # Convert boolean to lowercase string for form data
+                    converted_value = 'true' if v else 'false'
+                    print(f"DEBUG: Converting boolean {k}={v} ({type(v)}) to '{converted_value}'")
+                    form_data[k] = converted_value
+                else:
+                    form_data[k] = str(v)
         
+        print(f"DEBUG: Final form_data being sent to API: {form_data}")
+        
+        headers = {}
+        if returns_json:
+            headers['Accept'] = 'application/json'
+        else:
+            # Default to jpeg, but allow override from params
+            output_format = params.get("output_format", "jpeg")
+            headers['Accept'] = f"image/{output_format}"
+
         try:
             response = self.session.post(
                 url,
                 files=files,
                 data=form_data,
+                headers=headers,
                 timeout=300  # 5 minute timeout for processing
             )
             response.raise_for_status()
             
+            if returns_json:
+                return response.json()
+
             # Validate response content type
             content_type = response.headers.get('content-type', '')
             if not content_type.startswith('image/'):

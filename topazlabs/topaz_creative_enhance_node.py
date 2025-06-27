@@ -8,11 +8,10 @@ from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
 
 from base_topaz_node import BaseTopazNode
-from constants import ENHANCE_GENERATIVE_MODELS, ENHANCE_CREATIVE_DEFAULTS, PARAMETER_RANGES
 
 
 class TopazCreativeEnhanceNode(BaseTopazNode):
-    """Node for creative image enhancement using Topaz Labs generative models."""
+    """Node for creative image enhancement using Topaz Labs Enhance Generative models."""
     
     def __init__(self, name: str, metadata: dict[Any, Any] | None = None) -> None:
         """Initialize the Topaz Creative Enhance node.
@@ -23,26 +22,88 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
         """
         super().__init__(name, metadata)
         
-        # Generative model selection
+        # Available Enhance models that work well for creative enhancement
+        
+        # Model selection
         self.add_parameter(
             Parameter(
                 name="model",
-                tooltip="Creative enhancement model (GAN-based)",
+                tooltip="Generative enhancement model to use: Redefine for creative changes, Recovery for restoring details.",
                 type=ParameterTypeBuiltin.STR.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["model"],
+                default_value="Redefine",
                 allowed_modes={ParameterMode.PROPERTY},
-                traits={Options(choices=ENHANCE_GENERATIVE_MODELS)},
-                ui_options={"display_name": "Creative Model"}
+                traits={Options(choices=["Redefine", "Recovery", "Recovery V2"])},
+                ui_options={"display_name": "Model"}
             )
         )
         
-        # Sharpen parameter
+        # Prompt parameter (Redefine only)
+        self.add_parameter(
+            Parameter(
+                name="prompt",
+                tooltip="A description of the resulting image (max 1024 characters). Use descriptive statements rather than directives.",
+                type=ParameterTypeBuiltin.STR.value,
+                default_value="",
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
+                ui_options={
+                    "display_name": "Prompt",
+                    "multiline": True,
+                    "placeholder_text": "e.g., girl with red hair and blue eyes"
+                }
+            )
+        )
+        
+        # Auto-prompt parameter (Redefine only)
+        self.add_parameter(
+            Parameter(
+                name="autoprompt",
+                tooltip="Use auto-prompting model to generate a prompt. If enabled, ignores manual prompt input.",
+                type=ParameterTypeBuiltin.BOOL.value,
+                default_value=False,
+                allowed_modes={ParameterMode.PROPERTY},
+                ui_options={"display_name": "Auto Prompt"}
+            )
+        )
+        
+        # Creativity parameter (Redefine only)
+        self.add_parameter(
+            Parameter(
+                name="creativity",
+                tooltip="Lower values maintain highest fidelity. Higher values provide more creative results (1-6).",
+                type=ParameterTypeBuiltin.INT.value,
+                default_value=3,
+                allowed_modes={ParameterMode.PROPERTY},
+                traits={Slider(min_val=1, max_val=6)},
+                ui_options={
+                    "display_name": "Creativity",
+                    "step": 1
+                }
+            )
+        )
+        
+        # Texture parameter (Redefine only)
+        self.add_parameter(
+            Parameter(
+                name="texture",
+                tooltip="Add texture to the image. Recommend 1 for low creativity, 3 for higher creativity (1-5).",
+                type=ParameterTypeBuiltin.INT.value,
+                default_value=1,
+                allowed_modes={ParameterMode.PROPERTY},
+                traits={Slider(min_val=1, max_val=5)},
+                ui_options={
+                    "display_name": "Texture",
+                    "step": 1
+                }
+            )
+        )
+        
+        # Sharpen parameter (Redefine only)
         self.add_parameter(
             Parameter(
                 name="sharpen",
-                tooltip="Sharpen the image (0.0 = no sharpening, 1.0 = maximum sharpening)",
+                tooltip="Slightly sharpens the image (0.0-1.0)",
                 type=ParameterTypeBuiltin.FLOAT.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["sharpen"],
+                default_value=0.0,
                 allowed_modes={ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={
@@ -52,13 +113,13 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
             )
         )
         
-        # Denoise parameter
+        # Denoise parameter (Redefine only)
         self.add_parameter(
             Parameter(
                 name="denoise",
-                tooltip="Reduce noise in the image (0.0 = no denoising, 1.0 = maximum denoising)",
+                tooltip="Reduces noise in the image (0.0-1.0)",
                 type=ParameterTypeBuiltin.FLOAT.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["denoise"],
+                default_value=0.0,
                 allowed_modes={ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={
@@ -68,63 +129,29 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
             )
         )
         
-        # Fix compression parameter
+        # Detail parameter (Recovery models only)
         self.add_parameter(
             Parameter(
-                name="fix_compression",
-                tooltip="Fix compression artifacts (0.0 = no fix, 1.0 = maximum fix)",
+                name="detail",
+                tooltip="Adjusts the level of added detail after rendering (0.0-1.0)",
                 type=ParameterTypeBuiltin.FLOAT.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["fix_compression"],
+                default_value=0.5,
                 allowed_modes={ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={
-                    "display_name": "Fix Compression",
-                    "step": 0.1
-                }
-            )
-        )
-        
-        # Face enhancement toggle
-        self.add_parameter(
-            Parameter(
-                name="face_enhancement",
-                tooltip="Enable face enhancement",
-                type=ParameterTypeBuiltin.BOOL.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["face_enhancement"],
-                allowed_modes={ParameterMode.PROPERTY},
-                ui_options={"display_name": "Face Enhancement"}
-            )
-        )
-        
-        # Face enhancement strength
-        face_strength_range = PARAMETER_RANGES["face_enhancement_strength"]
-        self.add_parameter(
-            Parameter(
-                name="face_enhancement_strength",
-                tooltip="Strength of face enhancement when enabled",
-                type=ParameterTypeBuiltin.FLOAT.value,
-                default_value=ENHANCE_CREATIVE_DEFAULTS["face_enhancement_strength"],
-                allowed_modes={ParameterMode.PROPERTY},
-                traits={Slider(min_val=face_strength_range[0], max_val=face_strength_range[1])},
-                ui_options={
-                    "display_name": "Face Enhancement Strength",
+                    "display_name": "Detail",
                     "step": 0.1
                 }
             )
         )
     
     def process(self) -> None:
-        """Process the image using Topaz Labs creative enhancement."""
+        """Process the image using Topaz Labs Enhance Generative models."""
         try:
             # Get input image
             image_artifact = self.get_parameter_value("image_input")
             
-            # Debug: Check what we got
             if image_artifact is None:
-                # Check if there's a connection but no value
-                input_param = self.get_parameter_by_name("image_input")
-                if input_param and hasattr(input_param, 'connections'):
-                    pass  # Could add debug logging here
                 raise ValueError("No input image provided")
             
             if not image_artifact:
@@ -133,29 +160,69 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
             # Extract image data
             image_data = self._get_image_data(image_artifact)
             
-            # Gather parameters
+            # Get model selection
             model = self.get_parameter_value("model")
-            sharpen = self.get_parameter_value("sharpen")
-            denoise = self.get_parameter_value("denoise")
-            fix_compression = self.get_parameter_value("fix_compression")
-            face_enhancement = self.get_parameter_value("face_enhancement")
-            face_enhancement_strength = self.get_parameter_value("face_enhancement_strength")
             output_format = self.get_parameter_value("output_format")
             
-            # Prepare API parameters
+            # Prepare API parameters based on model
             api_params = {
                 "model": model,
-                "output_format": output_format,
-                "sharpen": sharpen,
-                "denoise": denoise,
-                "fix_compression": fix_compression,
-                "face_enhancement": face_enhancement,
-                "face_enhancement_strength": face_enhancement_strength
+                "output_format": output_format
             }
             
+            # Add model-specific parameters as additionalProperties
+            if model == "Redefine":
+                # Redefine model parameters
+                prompt = self.get_parameter_value("prompt")
+                autoprompt = self.get_parameter_value("autoprompt")
+                creativity = self.get_parameter_value("creativity")
+                texture = self.get_parameter_value("texture")
+                sharpen = self.get_parameter_value("sharpen")
+                denoise = self.get_parameter_value("denoise")
+                
+                # Only include prompt if autoprompt is disabled and prompt is provided
+                if not autoprompt and prompt and prompt.strip():
+                    api_params["prompt"] = prompt.strip()
+                
+                # Fix parameter types - handle cases where parameters return unexpected types
+                if not isinstance(sharpen, (int, float)):
+                    sharpen = 0.0  # Use default value if parameter returns wrong type
+                if not isinstance(denoise, (int, float)):
+                    denoise = 0.0  # Use default value if parameter returns wrong type
+                
+                # Debug: Check what we're getting from parameters
+                print(f"DEBUG NODE: Raw parameter values:")
+                print(f"  autoprompt={autoprompt} ({type(autoprompt)})")
+                print(f"  creativity={creativity} ({type(creativity)})")
+                print(f"  texture={texture} ({type(texture)})")
+                print(f"  sharpen={sharpen} ({type(sharpen)})")
+                print(f"  denoise={denoise} ({type(denoise)})")
+                
+                # Add all Redefine parameters as documented
+                # Convert boolean to the string format the API expects
+                api_params["autoprompt"] = "true" if autoprompt else "false"
+                api_params["creativity"] = int(creativity)
+                api_params["texture"] = int(texture)
+                api_params["sharpen"] = float(sharpen)
+                api_params["denoise"] = float(denoise)
+                
+                print(f"DEBUG NODE: Converted parameter values:")
+                print(f"  autoprompt={api_params['autoprompt']} ({type(api_params['autoprompt'])})")
+                print(f"  creativity={api_params['creativity']} ({type(api_params['creativity'])})")
+                print(f"  texture={api_params['texture']} ({type(api_params['texture'])})")
+                print(f"  sharpen={api_params['sharpen']} ({type(api_params['sharpen'])})")
+                print(f"  denoise={api_params['denoise']} ({type(api_params['denoise'])})")
+                
+            elif model in ["Recovery", "Recovery V2"]:
+                # Recovery model parameters
+                detail = self.get_parameter_value("detail")
+                if detail is not None:
+                    api_params["detail"] = detail
+            
             # Create API client and make request
+            print(f"DEBUG: About to call client.enhance_gen with api_params: {api_params}")
             with self._get_topaz_client() as client:
-                processed_image_data = client.enhance(
+                processed_image_data = client.enhance_gen(
                     image_data=image_data,
                     **api_params
                 )
@@ -163,14 +230,14 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
             # Save output image
             output_artifact = self._save_image_output(
                 processed_image_data, 
-                f"creative_enhanced_{model.lower().replace(' ', '_')}"
+                f"enhance_generative_{model.lower().replace(' ', '_')}"
             )
             
             # Set output value
             self.parameter_output_values["image_output"] = output_artifact
             
         except Exception as e:
-            raise RuntimeError(f"Creative enhancement failed: {str(e)}")
+            raise RuntimeError(f"Enhance Generative processing failed: {str(e)}")
     
     def validate_node(self) -> list[Exception] | None:
         """Validate that required configuration is available."""

@@ -25,11 +25,11 @@ ENHANCE_MODELS = [
     "Text Refine"
 ]
 
-# Generative enhance models (slower, creative) - Updated to use GAN-compatible models
+# Generative enhance models (per OpenAPI spec)
 ENHANCE_GENERATIVE_MODELS = [
-    "High Fidelity V2",
-    "CGI", 
-    "Text Refine"
+    "Recovery",
+    "Recovery V2", 
+    "Redefine"
 ]
 
 # Creative enhance models (alias for generative models)

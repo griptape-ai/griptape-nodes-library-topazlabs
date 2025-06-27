@@ -1,0 +1,1549 @@
+openapi: 3.0.3
+
+info:
+  title: Video API
+  version: 1.0.0
+  description: |
+    Parallelized video enhancements in the cloud
+
+    ## Access
+
+    Please visit [https://www.topazlabs.com/api](https://www.topazlabs.com/api) to purchase credits and get an API key.
+
+    ## Overview
+
+    1. Use `POST /video/` to create new video enhancement requests and view cost estimates.
+    2. Use `PATCH /video/:requestId/accept` to proceed with the request and begin uploading the source video.
+    3. Use `PATCH /video/:requestId/complete-upload` to complete the upload and start processing.
+    4. Use `GET /video/:requestId/status` to check processing status and access the enhanced video when complete.
+
+    ## Resources
+
+    Visual examples for selecting [Enhancement](https://docs.topazlabs.com/video-ai/filters/enhancement) & [Frame Interpolation](https://docs.topazlabs.com/video-ai/filters/frame-interpolation) model settings
+
+    ## Contact
+
+    Please reach out to enterprise@topazlabs.com if you have any questions.
+
+servers:
+  - url: https://api.topazlabs.com
+    description: Production API base URL
+
+tags:
+  - name: Introduction
+    description: |
+      This section contains the endpoints for the VideoCloud API.
+
+paths:
+  /video/status:
+    get:
+      tags:
+        - Introduction
+      summary: Get System Status
+      operationId: GetSystemStatus
+      description: |
+        Get status of the video rendering system
+
+        ## Response body
+
+        | **Property**           | **Type**  | **Description**                                   |
+        |-----------------------|----------|-----------------------------------------------------|
+        | **isAvailable**            | Boolean   | System availability status                    |
+        | **availabilityMessage**    | String    | Availability message                          |
+        | **queueState**             | Object    | Queue utilization and job age details         |
+        | **queueState.utilization** | Number    | Total jobs (active and pending) divided by scaling group max capacity |
+        | **queueState.avgJobAge**   | Number    | Average age of job in queue, in minutes       |
+        | **queueState.maxJobAge**   | Number    | Age of oldest job in queue, in minutes        |
+        | **supportedModels**        | Array     | List of supported AI models' [short code names](https://docs.topazlabs.com/video-ai/advanced-functions-in-topaz-video-ai/command-line-interface#selecting-models-with-cli-3154) |
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatusResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /video/:
+    post:
+      tags:
+        - Introduction
+      summary: Create Video Request
+      operationId: CreateVideoRequest
+      description: |
+        Create a new video enhancement request.
+
+        Send information about the video and desired enhancements then receive cost and time estimates.
+
+        Calling this endpoint does NOT consume credits.
+
+        Estimations are based on values provided, and the calculation is rerun once the system receives the source video. If the second estimate is significantly different than the initial values, the request is failed and the credits are fully refunded.
+
+        Time estimates are in development and may not be accurate.
+
+        ## Response body
+
+        | **Property**    | **Type**   | **Description**                                     |
+        |-----------------|------------|-----------------------------------------------------|
+        | **requestId**   | UUID       | Unique request identifier                           |
+        | **estimates**   | Object     | Refer to **RequestEstimates** below                 |
+
+        #### RequestEstimates
+
+        `cost` and `time` are arrays with two integers each, representing lower and upper bounds of the estimate.
+
+        | **Property**  | **Type**  | **Description**                                    |
+        |---------------|----------|-----------------------------------------------------|
+        | **cost**      | Array    | Cost range (in credits)                             |
+        | **time**      | Array    | Time range (in seconds)                             |
+
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CombinedCreateRequest'
+            example:
+              source:
+                container: mp4
+                size: 16125151
+                duration: 213
+                frameCount: 6371
+                frameRate: 30
+                resolution:
+                  width: 1280
+                  height: 720
+              filters:
+                - model: prob-4
+              output:
+                frameRate: 30
+                audioTransfer: Copy
+                audioCodec: AAC
+                videoEncoder: H265
+                videoProfile: Main
+                dynamicCompressionLevel: High
+                resolution:
+                  width: 3840
+                  height: 2160
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /video/{requestId}/accept:
+    patch:
+      tags:
+        - Introduction
+      summary: Accept and Upload Video Request
+      operationId: AcceptVideoRequest
+      description: |
+        Calling this endpoint reserves the estimated credits and returns signed URL(s) for **multi-part upload**.
+
+        ### Video uploads
+        The Video API uses multi-part upload to receive the video file for processing. You can use a simple byte-division function to create segments for the API to receive.
+
+        For example, if you have a 900MB video file and the system returns 3 upload URLs. You would then:
+
+        - Upload bytes 0-300,000,000 via HTTP PUT to `urls[0]`
+        - Upload bytes 300,000,001-600,000,000 via HTTP PUT to `urls[1]`
+        - Upload bytes 600,000,001-900,000,000 via HTTP PUT to `urls[2]`
+
+        If one of the uploads fail, you may reuse the same URL to retry - the action overwrites any partially uploaded data.
+
+        A successful response from the PUT request returns an `ETag` value in the header for each segment. Retain the part number and ETag pair for the next step (PATCH /video/{requestId}/complete-upload/).
+
+        ## Response body
+
+        | **Property**  | **Type**   | **Description**                                     |
+        |---------------|------------|-----------------------------------------------------|
+        | **uploadId**  | String     | Upload ID for multi-part upload                     |
+        | **urls**      | Array      | URLs for multi-part uploads                         |
+        | **message**   | String     | Response message                                    |
+
+      security:
+        - apiKey: []
+      parameters:
+        - in: path
+          name: requestId
+          schema:
+            type: string
+            format: uuid
+            example: c1f96dc2-c448-00e6-82ed-14ecb6403c62
+          required: true
+      responses:
+        '202':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /video/{requestId}/complete-upload/:
+    patch:
+      tags:
+        - Introduction
+      summary: Complete Video Upload
+      operationId: CompleteVideoUpload
+      description: |
+        Send metadata of the multi-part uploads to complete the upload and begin processing the video.
+
+        Optionally include the MD5 hash of the source video file to validate successful upload before processing.
+
+        ## Request body
+
+        | **Property**    | **Type**         | **Description**                                                                                         |
+        |-----------------|------------------|---------------------------------------------------------------------------------------------------------|
+        | **uploadResults** | Array          | An array of part number and ETag pairs of the uploaded parts. ETags are returned by S3 upon upload of the part. |
+        | **uploadResults.*.partNum** | Integer    | Part number of the uploaded part, starting from 1                                                      |
+        | **uploadResults.*.eTag**    | String     | eTag value returned by S3 upon upload of the part   
+
+      security:
+        - apiKey: []
+      parameters:
+        - in: path
+          name: requestId
+          schema:
+            type: string
+            format: uuid
+            example: c1f96dc2-c448-00e6-82ed-14ecb6403c62
+          required: true
+      requestBody:
+        $ref: '#/components/requestBodies/CompleteUploadRequest'
+      responses:
+        '202':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Processing has been queued
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /video/{requestId}:
+    delete:
+      tags:
+        - Introduction
+      summary: Cancel Video Request
+      operationId: CancelVideoRequest
+      description: |
+        Cancel a video enhancement request.
+
+        If the request is canceled before any processing starts, then all reserved credits are refunded.
+
+        If the request is canceled during processing, then a partial refund is issued based on the progress.
+
+      security:
+        - apiKey: []
+      parameters:
+        - in: path
+          name: requestId
+          schema:
+            type: string
+            format: uuid
+            example: c1f96dc2-c448-00e6-82ed-14ecb6403c62
+          required: true
+      responses:
+        '200':
+          description: Successful response, message may also indicate if there is a parital refund, if applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cancellation in progress. Partial credits have been refunded.
+        '204':
+          description: Successful response, already canceled or in progress
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /video/{requestId}/media:
+    delete:
+      tags:
+        - Introduction
+      summary: Delete Video Files
+      operationId: DeleteVideoFiles
+      description: |
+        This endpoint will delete your source and enhanced video files associated with the request from Topaz Labs storage, if any exists.
+
+        Note: All videos are automatically deleted after 7 days.
+      security:
+        - apiKey: []
+      parameters:
+        - in: path
+          name: requestId
+          schema:
+            type: string
+            format: uuid
+            example: c1f96dc2-c448-00e6-82ed-14ecb6403c62
+          required: true
+      responses:
+        '204':
+          description: Successful response, already canceled or in progress
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /video/{requestId}/status:
+    get:
+      tags:
+        - Introduction
+      summary: Get Video Request Status
+      operationId: GetVideoRequestStatus
+
+      description: |
+        Get status of the request.
+
+        If processing is complete, the response will include a signed URL to access the enhanced video.
+
+        Make sure to download and save the video within the TTL provided in the response (24 hours by default). New URLs with new TTL can be generated by calling this endpoint, but we retain your data for only a limited number of days. The video will be permanently deleted from our system afterwards.
+
+        ## Response body
+
+        | **Property**         | **Type**  | **Description**                                   |
+        |---------------------|----------|-----------------------------------------------------|
+        | **status**           | String   | Current processing status                          |
+        | **progress**         | Number   | Total request progress (percentage)                |
+        | **estimates**        | Object   | Refer to **RequestEstimates**                      |
+        | **outputSize**       | String   | Size of output video                               |
+        | **averageFps**       | Number   | Average FPS of processing nodes                    |
+        | **combinedFps**      | Number   | Combined FPS of all nodes                          |
+        | **processingJobs**   | Array    | Refer to **VideoProcessingStatIntermediate** below   |
+        | **download**         | Object   | Refer to **EnhancedDownloadSignedUrlResponse** below |
+
+        ---
+
+        #### RequestEstimates
+
+        `cost` and `time` are arrays with two integers each, representing lower and upper bounds of the estimate.
+
+        | **Property**  | **Type**  | **Description**                                    |
+        |---------------|----------|-----------------------------------------------------|
+        | **cost**      | Array    | Cost range (in credits)                             |
+        | **time**      | Array    | Time range (in seconds)                             |
+
+        ---
+
+        #### VideoProcessingStatIntermediate
+
+        | **Property**         | **Type**  | **Description**                                   |
+        |---------------------|----------|-----------------------------------------------------|
+        | **chunkId**          | UUID     | Unique chunk identifier                            |
+        | **chunkIndex**       | Integer  | Index of the chunk                                 |
+        | **taskIndex**        | Integer  | Task index for chunk processing                    |
+        | **status**           | String   | Status (queued, processing, complete, etc.)        |
+        | **gpuUtilization**   | Integer  | GPU utilization in percentage                      |
+        | **gpuMemoryUtilization** | Integer | GPU memory usage percentage                     |
+        | **fps**              | Number   | Processing speed of the node                       |
+        | **progress**         | Number   | Processing progress (percentage)                   |
+
+        ---
+
+        #### EnhancedDownloadSignedUrlResponse
+
+        | **Property**   | **Type**  | **Description**                 |
+        |----------------|-----------|---------------------------------|
+        | **url**        | String    | Signed download URL for the enhanced file |
+        | **expiresIn**  | Integer   | TTL in milliseconds                  |
+        | **expiresAt**  | Integer   | Time in milliseconds since UTC epoch |
+
+      security:
+        - apiKey: []
+      parameters:
+        - in: path
+          name: requestId
+          schema:
+            type: string
+            format: uuid
+            example: c1f96dc2-c448-00e6-82ed-14ecb6403c62
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /video/{requestId}/metrics:
+    get:
+      tags:
+        - Introduction
+      summary: Get Video Request Metrics
+      operationId: GetVideoRequestMetrics
+      description: |
+        Get metrics for the request
+
+        ## Response body
+
+        | **Property**        | **Type** | **Description**                                     |
+        |---------------------|----------|-----------------------------------------------------|
+        | **minutesInState**  | Object   | Minutes spent in various processing states          |
+        | **minutesInState.pendingSourceUpload** | Number    | - |
+        | **minutesInState.initializing**        | Number    | - |
+        | **minutesInState.preprocessing**       | Number    | - |
+        | **minutesInState.processing**          | Number    | - |
+        | **minutesInState.postprocessing**      | Number    | - |
+        | **minutesToEnhance**| Number   | Time to complete enhancement after source upload    |
+        | **inputFrames**     | Integer  | Number of input frames                              |
+        | **outputFrames**    | Integer  | Number of output frames                             |
+        | **inputSize**       | String   | Size of input video                                 |
+        | **outputSize**      | String   | Size of output video                                |
+        | **chunks**          | Array    | Refer to **VideoChunkMetrics** below                |
+
+        ---
+
+        #### VideoChunkMetrics
+
+        | **Property**        | **Type**   | **Description**                                  |
+        |---------------------|------------|--------------------------------------------------|
+        | **chunkIndex**                | Integer   | Index of the chunk                      |
+        | **tasks**                     | Array     | List of processing tasks for the chunk  |
+        | **tasks.*.minutesProcessing** | Number    | Duration of processing in minutes       |
+        | **tasks.*.inputFrames**       | Integer   | Number of input frames                  |
+        | **tasks.*.outputFrames**      | Integer   | Number of output frames                 |
+        | **tasks.*.inputSize**         | String    | Size of the input file                  |
+        | **tasks.*.outputSize**        | String    | Size of the output file                 |
+
+      security:
+        - apiKey: []
+      parameters:
+        - in: path
+          name: requestId
+          schema:
+            type: string
+            format: uuid
+            example: c1f96dc2-c448-00e6-82ed-14ecb6403c62
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /video/history:
+    get:
+      tags:
+        - Introduction
+      summary: Get My Request History
+      operationId: GetHistory
+      description: |
+        This endpoint will return your history for the past 7 days.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HistoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    AcceptResponse:
+      type: object
+      properties:
+        uploadId:
+          type: string
+          description: Upload ID for completing multi-part upload
+          example: GDlWC7qIaE6okS41Xf/ktpuS5XzTRabg
+        urls:
+          type: array
+          description: URLs to PUT the parts to. The source video should be split into urls.length number of byte ranges.
+          items:
+            type: string
+          example:
+            - https://videocloud.s3.amazonaws.com/0193893a-a2ba-799e-b258-928f02c0f419/source.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256...x-id=UploadPart
+            - https://videocloud.s3.amazonaws.com/0193893a-a2ba-799e-b258-928f02c0f419/source.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256...x-id=UploadPart
+        message:
+          type: string
+          description: The endpoint will return message only if the video will be sourced from an external storage provider
+          example: Accepted
+    ChunkMetrics:
+      type: object
+      properties:
+        chunkIndex:
+          type: integer
+          description: Index of the chunk starting from 0
+          example: 0
+        tasks:
+          type: array
+          description: Multiple enhancement tasks may have been run on a chunk
+          items:
+            type: object
+            properties:
+              minutesProcessing:
+                type: number
+                example: 12.3
+              inputFrames:
+                type: integer
+                example: 320
+              outputFrames:
+                type: integer
+                example: 320
+              inputSize:
+                type: string
+                example: 100 MB
+              outputSize:
+                type: string
+                example: 200 MB
+    CreateResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          example: c1f96dc2-c448-00e6-82ed-14ecb6403c62
+        estimates:
+          $ref: '#/components/schemas/RequestEstimates'
+    CredentialsS3:
+      type: object
+      required:
+        - roleArn
+        - externalId
+      properties:
+        roleArn:
+          type: string
+          description: AWS ARN of the role to assume
+          example: arn:aws:iam::123456789:role/topazlabs
+        externalId:
+          type: string
+          description: Kind of like a secret string for extra layer of security
+          example: MSTnuGztXtTU25XKjVfMJCsujv6VtAGtv1TGSjtOL6M=
+    EnhancedDownloadSignedUrlResponse:
+      type: object
+      description: Signed download URL to the enhanced video file.
+      properties:
+        url:
+          type: string
+          example: https://videocloud.r2.cloudflarestorage.com/0193893a-a2ba-799e-b258-928f02c0f419/enhanced.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256...x-id=GetObject
+        expiresIn:
+          type: integer
+          description: TTL in milliseconds
+          example: 86400000
+        expiresAt:
+          type: integer
+          description: Time in milliseconds since UTC epoch
+          example: 1727213400000
+    EnhancementFilter:
+      type: object
+      required:
+        - model
+      properties:
+        model:
+          type: string
+          description: |
+            [Short code name](https://docs.topazlabs.com/video-ai/advanced-functions-in-topaz-video-ai/command-line-interface#selecting-models-with-cli-3154) for AI model
+          enum:
+            - aaa-9
+            - ahq-12
+            - alq-13
+            - alqs-2
+            - amq-13
+            - amqs-2
+            - ddv-3
+            - dtd-4
+            - dtds-2
+            - dtv-4
+            - dtvs-2
+            - gcg-5
+            - ghq-5
+            - iris-2
+            - iris-3
+            - nxf-1
+            - nyx-3
+            - prob-4
+            - rhea-1
+            - rxl-1
+            - thd-3
+            - thf-4
+            - thm-2
+          example: prob-4
+        videoType:
+          type: string
+          enum: [Progressive, Interlaced, ProgressiveInterlaced]
+          description: Frame/field type of the video
+          example: Progressive
+        auto:
+          type: string
+          enum: [Auto, Manual, Relative]
+          description: |
+            Parameter mode of the selected model
+            - Auto - parameter estimation is used with no customization
+            - Relative - uses auto parameters with optional weights added
+            - Manual - all parameters are manually set
+          example: Auto
+        fieldOrder:
+          type: string
+          enum: [TopFirst, BottomFirst, Auto]
+          description: Optional specification of field order for interlaced input videos
+          example: Auto
+        focusFixLevel:
+          type: string
+          enum: [None, Normal, Strong]
+          description: Downscales video input for stronger correction of blurred subjects
+          example: Normal
+        compression:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Adjust strength of compression recovery
+          example: 0.1
+        details:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Amount of detail reconstruction
+          example: 0.2
+        prenoise:
+          type: number
+          minimum: 0
+          maximum: 0.1
+          description: Adds noise to input to reduce over-smoothing
+          example: 0.01
+        noise:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Amount of noise reduction
+          example: 0.3
+        halo:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Amount of halo reduction
+          example: 0.4
+        preblur:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Adjust anti-aliasing and deblurring strength
+          example: 0.5
+        blur:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Amount of sharpness applied
+          example: 0.6
+        grain:
+          type: number
+          minimum: 0
+          maximum: 0.1
+          description: Adds grain after AI model processing
+          example: 0.02
+        grainSize:
+          type: number
+          minimum: 0
+          maximum: 5
+          description: Size of generated grain
+          example: 1
+        recoverOriginalDetailValue:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Reintroduce source details into the output video
+          example: 0.7
+    ExternalStorage:
+      type: object
+      required:
+        - provider
+        - credentials
+        - bucketName
+        - key
+      properties:
+        provider:
+          type: string
+          enum: [s3]
+          example: s3
+        credentials:
+          $ref: '#/components/schemas/CredentialsS3'
+        bucketName:
+          type: string
+          example: galaxies
+        key:
+          type: string
+          description: |
+            The example includes the standard specifier for image sequence requests, with optional directory path. It must begin with "%" and end with the integer specifier "d". The "0" in the example indicates left-padding with zeroes, and "6" indicates the number of digits in the file name.
+            Keys for video requests must be valid characters supported by S3.
+          example: milky_way/%06d.tiff
+    FrameInterpolationFilter:
+      type: object
+      required:
+        - model
+      properties:
+        model:
+          type: string
+          description: |
+            [Short code name](https://docs.topazlabs.com/video-ai/advanced-functions-in-topaz-video-ai/command-line-interface#selecting-models-with-cli-3154) for AI model
+          enum:
+            - aion-1
+            - apf-2
+            - apo-8
+            - chf-3
+            - chr-2
+          example: apo-8
+        slowmo:
+          type: number
+          minimum: 1
+          maximum: 16
+          description: Slow motion factor applied to input video. For example, a value of 2 makes the output twice as slow and doubles the duration.
+          example: 2
+        fps:
+          type: number
+          minimum: 15
+          maximum: 240
+          description: Output frame rate, does not increase duration
+          example: 60
+        duplicate:
+          type: boolean
+          description: Analyze input for duplicate frames and remove them
+          example: true
+        duplicateThreshold:
+          type: number
+          minimum: 0.001
+          maximum: 0.1
+          description: Sensitivity of detection for duplicate frames
+          example: 0.01
+    HistoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique request identifier
+        userId:
+          type: number
+        status:
+          type: string
+          enum:
+            - requested
+            - accepted
+            - initializing
+            - preprocessing
+            - processing
+            - postprocessing
+            - complete
+            - canceling
+            - canceled
+            - failed
+        ts:
+          type: object
+          description: Timestamp the request reached the state, if applicable, in milliseconds since UTC epoch
+          properties:
+            requested:
+              type: number
+              description: Request created
+            accepted:
+              type: number
+              description: User has accepted the costs and began uploading the source video
+            initializing:
+              type: number
+              description: System received the source video and began initializing resources
+            preprocessing:
+              type: number
+            processing:
+              type: number
+            postprocessing:
+              type: number
+            complete:
+              type: number
+            canceling:
+              type: number
+            canceled:
+              type: number
+            failed:
+              type: number
+        lastEventTs:
+          type: number
+          description: Timestamp of the last event, in milliseconds since UTC epoch
+        estimates:
+          $ref: '#/components/schemas/RequestEstimates'
+        transactions:
+          type: array
+          items:
+            type: object
+            properties:
+              operation:
+                type: string
+                enum:
+                  - reserve
+                  - commit
+                  - rollback
+              amount:
+                type: number
+                description: Amount involved in the transaction, in credits
+        error:
+          type: object
+          description: Error message, if the request was a failure
+          properties:
+            message:
+              type: string
+    InputFilters:
+      type: array
+      description: Array of EnhancementFilter or FrameInterpolationFilter objects
+      items:
+        anyOf:
+          - $ref: '#/components/schemas/EnhancementFilter'
+          - $ref: '#/components/schemas/FrameInterpolationFilter'
+      example:
+        - model: prob-4
+          videoType: Progressive
+          auto: Auto
+          fieldOrder: Auto
+          focusFixLevel: Normal
+          compression: 0.1
+          details: 0.2
+          prenoise: 0.01
+          noise: 0.3
+          halo: 0.4
+          preblur: 0.5
+          blur: 0.6
+          grain: 0.02
+          grainSize: 1
+          recoverOriginalDetailValue: 0.7
+        - model: apo-8
+          slowmo: 2
+          fps: 60
+          duplicate: true
+          duplicateThreshold: 0.01
+    MetricsResponse:
+      type: object
+      properties:
+        minutesInState:
+          type: object
+          properties:
+            pendingSourceUpload:
+              type: number
+              example: 1.23
+            initializing:
+              type: number
+              example: 1.23
+            preprocessing:
+              type: number
+              example: 1.23
+            processing:
+              type: number
+              example: 3.21
+            postprocessing:
+              type: number
+              example: 3.21
+        minutesToEnhance:
+          type: number
+          description: Time taken for the final enhanced video to become available for download after user finished uploading the source video.
+          example: 12.34
+        inputFrames:
+          type: integer
+          example: 3000
+        outputFrames:
+          type: integer
+          example: 3000
+        inputSize:
+          type: string
+          example: 300 MB
+        outputSize:
+          type: string
+          example: 400 MB
+        chunks:
+          type: array
+          description: Metrics for each chunk
+          items:
+            $ref: '#/components/schemas/ChunkMetrics'
+          example:
+            - chunkIndex: 0
+              tasks:
+                - minutesProcessing: 12.3
+                  inputFrames: 320
+                  outputFrames: 320
+                  inputSize: 100 MB
+                  outputSize: 200 MB
+            - chunkIndex: 1
+              tasks:
+                - minutesProcessing: 12.2
+                  inputFrames: 319
+                  outputFrames: 319
+                  inputSize: 99 MB
+                  outputSize: 199 MB
+    OutputInformationImageSequence:
+      type: object
+      required:
+        - resolution
+        - frameRate
+      properties:
+        resolution:
+          type: object
+          description: Desired output resolution
+          required:
+            - width
+            - height
+          properties:
+            width:
+              type: integer
+              description: Width in pixels. The maximum size depends on the encoder and can be referenced using the table below <table> <tr> <td>H264</td> <td>H265</td> <td>ProRes <td>AV1 <td>VP9 </tr> <tr> <td>4096</td> <td>8192</td> <td>16386</td> <td>16384</td> <td>8192</td> </tr> </table>
+              example: 7680
+            height:
+              type: integer
+              description: Height in pixels. The maximum size depends on the encoder and can be referenced using the table below <table> <tr> <td>H264</td> <td>H265</td> <td>ProRes <td>AV1 <td>VP9 </tr> <tr> <td>4096</td> <td>8192</td> <td>16386</td> <td>8704</td> <td>8192</td> </tr> </table>
+              example: 4320
+        frameRate:
+          type: number
+          description: Frame rate
+          example: 30
+        codecId:
+          type: string
+          description: Video codec ID, if known. Defaults to videoEncoder.
+          example: h265-main-win-nvidia
+        videoEncoder:
+          type: string
+          enum:
+            - DPX
+            - EXR
+            - JPEG
+            - PNG
+            - TIFF
+          example: TIFF
+        videoProfile:
+          type: string
+          description: Codec profile specific to videoEncoder
+          example: Main
+        cropToFit:
+          type: boolean
+          description: Center cropping to fit the output dimensions
+          example: true
+        container:
+          type: string
+          enum:
+            - DPX
+            - EXR
+            - JPEG
+            - PNG
+            - TIFF
+          description: Desired output container, defaults to the input container
+          example: TIFF
+    OutputInformationVideo:
+      type: object
+      required:
+        - resolution
+        - frameRate
+        - audioCodec
+        - audioTransfer
+      properties:
+        resolution:
+          type: object
+          description: Desired output resolution
+          required:
+            - width
+            - height
+          properties:
+            width:
+              type: integer
+              description: Width in pixels. The maximum size depends on the encoder and can be referenced using the table below <table> <tr> <td>H264</td> <td>H265</td> <td>ProRes <td>AV1 <td>VP9 </tr> <tr> <td>4096</td> <td>8192</td> <td>16386</td> <td>16384</td> <td>8192</td> </tr> </table>
+              example: 7680
+            height:
+              type: integer
+              description: Height in pixels. The maximum size depends on the encoder and can be referenced using the table below <table> <tr> <td>H264</td> <td>H265</td> <td>ProRes <td>AV1 <td>VP9 </tr> <tr> <td>4096</td> <td>8192</td> <td>16386</td> <td>8704</td> <td>8192</td> </tr> </table>
+              example: 4320
+        frameRate:
+          type: number
+          description: Frame rate
+          example: 30
+        audioBitrate:
+          type: string
+          description: Audio bitrate, if audioTransfer is Copy or Convert. Default values for the codec are used if not provided.
+          example: "320"
+        audioCodec:
+          type: string
+          enum: [AAC, AC3, PCM]
+          description: __Required if audioTransfer is Copy or Convert.__
+          example: AAC
+        audioTransfer:
+          type: string
+          enum: [Copy, Convert, None]
+          example: Copy
+        codecId:
+          type: string
+          description: Video codec ID, if known. Defaults to videoEncoder.
+          example: h265-main-win-nvidia
+        videoEncoder:
+          type: string
+          enum:
+            - AV1
+            - FFV1
+            - H264
+            - H265
+            - ProRes
+            - QuickTime Animation
+            - QuickTime R210
+            - QuickTime V210
+            - VP9
+          example: H265
+        videoBitrate:
+          type: string
+          description: __Required if dynamicCompressionLevel is not provided.__ Constant bitrate, suffixed with "k" for kilobits or "m" for megabits per second.
+          example: "1k"
+        dynamicCompressionLevel:
+          type: string
+          enum: [Low, Mid, High]
+          description: __Required if videoBitrate is not provided.__ Automatic CQP selection.
+          example: Mid
+        videoProfile:
+          type: string
+          description: Codec profile specific to videoEncoder. The following are some combinations of available profiles based on the 'videoEncoder' selection <table> <tr> <td>H264</td> <td>H265</td> <td>ProRes <td>AV1 <td>VP9 </tr> <tr> <td>High</td> <td>Main, Main10</td> <td>422 Proxy, 422 LT, 422 Std, 422 HQ</td> <td>8-bit, 10-bit</td> <td>Good, Best</td> </tr> </table>
+          example: Main
+        cropToFit:
+          type: boolean
+          description: Center cropping to fit the output dimensions
+          example: true
+        container:
+          type: string
+          enum:
+            - mp4
+            - mov
+            - mkv
+          description: Desired output container
+          example: mp4
+    ProcessingStatIntermediate:
+      type: array
+      description: Processing state for each chunk
+      items:
+        type: object
+        properties:
+          chunkId:
+            type: string
+            format: uuid
+            example: c1f96dc2-c448-00e6-82ed-14ecb6403c62
+          chunkIndex:
+            type: integer
+            description: Index of the chunk starting from 0
+            example: 0
+          taskIndex:
+            type: integer
+            description: Index of a chunk's enhancement task starting from 0
+            example: 0
+          status:
+            type: string
+            enum:
+              - queued
+              - processing
+              - complete
+              - canceled
+              - failed
+            example: processing
+          gpuUtilization:
+            type: number
+            description: In percentage
+            example: 56
+          gpuMemoryUtilization:
+            type: number
+            description: In percentage
+            example: 65
+          sampleCount:
+            type: integer
+            description: The number of latest processing stat records used in the average calculation
+            example: 20
+          currentFrame:
+            type: integer
+            example: 123
+          expectedOutputFrames:
+            type: integer
+            description: This value and currentFrame is used to calculate the progress %
+            example: 320
+          latestLogTs:
+            type: integer
+            description: Timestamp of the latest stat record in milliseconds since UTC epoch
+            example: 1727213410471
+          currentSize:
+            type: integer
+            description: In bytes
+            example: 123456
+          fps:
+            type: number
+            description: Processing speed of the node
+            example: 2.34
+          progress:
+            type: number
+            description: In percentage
+            example: 90
+    RequestEstimates:
+      type: object
+      description: Lower and upper bound estimates
+      properties:
+        cost:
+          type: array
+          description: In credits
+          items:
+            type: integer
+          example: [10, 12]
+        time:
+          type: array
+          description: In seconds, assuming an empty queue, starting from the time the source video has been received
+          items:
+            type: integer
+          example: [600, 700]
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - requested
+            - accepted
+            - initializing
+            - preprocessing
+            - processing
+            - postprocessing
+            - complete
+            - canceling
+            - canceled
+            - failed
+          example: processing
+        progress:
+          type: number
+          description: Total progress of the request in percentage
+          example: 82
+        estimates:
+          $ref: '#/components/schemas/RequestEstimates'
+        outputSize:
+          type: string
+          example: 10 GB
+        averageFps:
+          type: number
+          description: Average processing speed of each node
+          example: 1.23
+        combinedFps:
+          type: number
+          description: Combined processing speed of all nodes
+          example: 12.34
+        message:
+          type: string
+          example: Processing
+        processingJobs:
+          $ref: '#/components/schemas/ProcessingStatIntermediate'
+          example:
+            - chunkId: 0193b36c-b37f-7997-ab75-c85f61b451e8
+              chunkIndex: 0
+              taskIndex: 0
+              status: processing
+              gpuUtilization: 56
+              gpuMemoryUtilization: 65
+              sampleCount: 20
+              currentFrame: 123
+              expectedOutputFrames: 320
+              latestLogTs: 1727213410471
+              currentSize: 123456
+              fps: 2.34
+              progress: 90
+            - chunkId: 0193b36c-b37f-7997-ab75-c85f61b451e9
+              chunkIndex: 1
+              taskIndex: 0
+              status: processing
+              gpuUtilization: 65
+              gpuMemoryUtilization: 56
+              sampleCount: 20
+              currentFrame: 123
+              expectedOutputFrames: 319
+              latestLogTs: 1727213410471
+              currentSize: 123456
+              fps: 2.34
+              progress: 89
+        download:
+          $ref: '#/components/schemas/EnhancedDownloadSignedUrlResponse'
+    SystemStatusResponse:
+      type: object
+      properties:
+        isAvailable:
+          type: boolean
+          example: false
+        availabilityMessage:
+          type: string
+          example: Cloud rendering is temporarily disabled for maintenance
+        queueState:
+          type: object
+          properties:
+            utilization:
+              type: number
+              minimum: 0
+              maximum: 1
+              description: Total jobs (active and pending) divided by scaling group max capacity
+              example: 0.1
+            avgJobAge:
+              type: number
+              description: Average age of job in queue, in minutes
+              example: 2
+            maxJobAge:
+              type: number
+              description: Age of oldest job in queue, in minutes
+              example: 3
+        supportedModels:
+          type: array
+          description: List of supported models
+          items:
+            type: string
+          example:
+            - aaa-9
+            - ahq-12
+            - alq-13
+            - alqs-2
+            - amq-13
+            - amqs-2
+            - apf-2
+            - apo-8
+            - chf-3
+            - chr-2
+            - ddv-3
+            - dtd-4
+            - dtds-2
+            - dtv-4
+            - dtvs-2
+            - gcg-5
+            - ghq-5
+            - iris-2
+            - iris-3
+            - nxf-1
+            - nyx-3
+            - prob-4
+            - rhea-1
+            - thd-3
+            - thf-4
+            - thm-2
+    CreateRequestImageSequenceSchema:
+      title: Image Sequence
+      type: object
+      required:
+        - source
+        - filters
+        - output
+        - destination
+      properties:
+        source:
+          type: object
+          description: Source details for the video
+          required:
+            - container
+            - frameCount
+            - frameRate
+            - resolution
+            - external
+          properties:
+            container:
+              type: string
+              enum:
+                - DPX
+                - EXR
+                - JPEG
+                - PNG
+                - TIFF
+              description: The container format of the image files
+              example: TIFF
+            frameCount:
+              type: number
+              description: Total number of frames in the video, in this case, equal to the number of image files.
+              example: 18000
+            frameRate:
+              type: number
+              description: Frame rate of the video
+              example: 30
+            resolution:
+              type: object
+              description: Resolution details of the image
+              required:
+                - width
+                - height
+              properties:
+                width:
+                  type: integer
+                  description: Width of the image in pixels
+                  example: 1920
+                height:
+                  type: integer
+                  description: Height of the image in pixels
+                  example: 1080
+            startNumber:
+              type: integer
+              description: Optional starting frame number for image sequences
+              example: 120
+            endNumber:
+              type: integer
+              description: Optional ending frame number for image sequences
+              example: 120
+            external:
+              $ref: '#/components/schemas/ExternalStorage'
+        filters:
+          $ref: '#/components/schemas/InputFilters'
+        output:
+          $ref: '#/components/schemas/OutputInformationImageSequence'
+        destination:
+          type: object
+          properties:
+            external:
+              $ref: '#/components/schemas/ExternalStorage'
+    CreateRequestVideoSchema:
+      title: Video AI
+      type: object
+      required:
+        - source
+        - filters
+        - output
+      properties:
+        source:
+          type: object
+          description: Source details for the video
+          required:
+            - container
+            - size
+            - duration
+            - frameCount
+            - frameRate
+            - resolution
+          properties:
+            container:
+              type: string
+              enum:
+                - mp4
+                - mov
+                - mkv
+              description: The container format of the video file
+              example: mp4
+            size:
+              type: integer
+              description: Size of the video file in bytes
+              example: 123456000
+            duration:
+              type: number
+              description: Duration of the video file in seconds
+              example: 600
+            frameCount:
+              type: number
+              description: Total number of frames in the video
+              example: 18000
+            frameRate:
+              type: number
+              description: Frame rate of the video
+              example: 30
+            resolution:
+              type: object
+              description: Resolution details of the video
+              required:
+                - width
+                - height
+              properties:
+                width:
+                  type: integer
+                  description: Width of the video in pixels
+                  example: 1920
+                height:
+                  type: integer
+                  description: Height of the video in pixels
+                  example: 1080
+            external:
+              $ref: '#/components/schemas/ExternalStorage'
+        filters:
+          $ref: '#/components/schemas/InputFilters'
+        output:
+          $ref: '#/components/schemas/OutputInformationVideo'
+        destination:
+          type: object
+          properties:
+            external:
+              $ref: '#/components/schemas/ExternalStorage'
+    CombinedCreateRequest:
+      oneOf:
+        - $ref: '#/components/schemas/CreateRequestVideoSchema'           
+        - $ref: '#/components/schemas/CreateRequestImageSequenceSchema'
+
+  requestBodies:
+    CompleteUploadRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - uploadResults
+            properties:
+              md5Hash:
+                type: string
+                description: MD5 hash of the source video file in hex
+                example: 4d186321c1a7f0f354b297e8914ab240
+              uploadResults:
+                type: array
+                description: An array of part number and ETag pairs of the uploaded parts. ETags are returned by S3 upon upload of the part.
+                items:
+                  type: object
+                  required:
+                    - partNum
+                    - eTag
+                  properties:
+                    partNum:
+                      type: integer
+                      description: Part number of the uploaded part, starting from 1
+                    eTag:
+                      type: string
+                      description: eTag value returned by S3 upon upload of the part
+                example:
+                  - partNum: 1
+                    eTag: "ff00a2c854712e4b4765eeefa084baa5-305"
+                  - partNum: 2
+                    eTag: "92ee1d92cda0f9f8de4429c9596773aa-34"
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Invalid input
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Unauthorized
+    PaymentRequired:
+      description: Payment required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Insufficient credits
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Forbidden
+    NotFound:
+      description: Enhancement request with the provided ID not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Not Found
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Internal server error
+    ServiceUnavailable:
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Service unavailable
+
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+security:
+  - apiKey: []
