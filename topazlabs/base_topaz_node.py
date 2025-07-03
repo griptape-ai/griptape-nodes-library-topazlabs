@@ -22,7 +22,6 @@ class BaseTopazNode(DataNode):
             metadata: Optional metadata dictionary
         """
         super().__init__(name, metadata)
-        
         # Common input parameter for image
         self.add_parameter(
             Parameter(
@@ -53,13 +52,13 @@ class BaseTopazNode(DataNode):
             Parameter(
                 name="status",
                 tooltip="Processing status and messages",
-                type=ParameterTypeBuiltin.STR.value,
-                default_value="",
-                allowed_modes={ParameterMode.PROPERTY},
+                type="str",
+                allowed_modes={ParameterMode.OUTPUT},
                 ui_options={
                     "multiline": True,
-                    "hide": True,
-                    "display_name": "Status"
+                    "hide": False,
+                    "display_name": "Status",
+                    "placeholder_text": "Status messages"
                 }
             )
         )
