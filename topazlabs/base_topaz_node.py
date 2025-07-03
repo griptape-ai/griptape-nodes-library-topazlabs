@@ -22,7 +22,6 @@ class BaseTopazNode(DataNode):
             metadata: Optional metadata dictionary
         """
         super().__init__(name, metadata)
-        
         # Common input parameter for image
         self.add_parameter(
             Parameter(
