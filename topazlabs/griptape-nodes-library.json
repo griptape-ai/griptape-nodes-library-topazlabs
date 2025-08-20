@@ -33,11 +33,19 @@
     },
     "categories": [
         {
-            "Topaz Labs": {
-                "color": "border-blue-500",
-                "title": "Topaz Labs",
+            "image/topazlabs": {
+                "color": "border-purple-500",
+                "title": "Image/Topaz Labs",
                 "description": "Image enhancement and processing nodes using Topaz Labs API",
                 "icon": "Image"
+            }
+        },
+        {
+            "video/topazlabs": {
+                "color": "border-pink-500",
+                "title": "Video/Topaz Labs",
+                "description": "Video enhancement and processing nodes using Topaz Labs API",
+                "icon": "Video"
             }
         }
     ],
@@ -46,7 +54,7 @@
             "class_name": "TopazDenoiseNode",
             "file_path": "topaz_denoise_node.py",
             "metadata": {
-                "category": "Topaz Labs",
+                "category": "image/topazlabs",
                 "description": "Reduces image noise using Topaz Labs Denoise API with adjustable strength and detail preservation.",
                 "display_name": "Topaz Denoise"
             }
@@ -55,7 +63,7 @@
             "class_name": "TopazEnhanceNode",
             "file_path": "topaz_enhance_node.py",
             "metadata": {
-                "category": "Topaz Labs",
+                "category": "image/topazlabs",
                 "description": "Enhances image sharpness, clarity, and facial details using Topaz Labs Enhance API.",
                 "display_name": "Topaz Enhance"
             }
@@ -64,7 +72,7 @@
             "class_name": "TopazCreativeEnhanceNode",
             "file_path": "topaz_creative_enhance_node.py",
             "metadata": {
-                "category": "Topaz Labs",
+                "category": "image/topazlabs",
                 "description": "Creative image enhancement using generative AI models with prompt-based control and artistic effects.",
                 "display_name": "Topaz Creative Enhance"
             }
@@ -73,7 +81,7 @@
             "class_name": "TopazFrameInterpolationNode",
             "file_path": "topaz_frame_interpolation_node.py",
             "metadata": {
-                "category": "Topaz Labs",
+                "category": "video/topazlabs",
                 "description": "Frame interpolation and smooth motion enhancement for converting videos to 60fps and creating slow motion effects.",
                 "display_name": "Topaz Frame Interpolation"
             }
@@ -82,7 +90,7 @@
             "class_name": "TopazVideoUpscaleNode",
             "file_path": "topaz_video_upscale_node.py",
             "metadata": {
-                "category": "Topaz Labs",
+                "category": "video/topazlabs",
                 "description": "Video upscaling and quality enhancement with AI-powered resolution improvement and detail recovery.",
                 "display_name": "Topaz Video Upscale"
             }
@@ -91,7 +99,7 @@
             "class_name": "TopazVideoDenoiseNode",
             "file_path": "topaz_video_denoise_node.py",
             "metadata": {
-                "category": "Topaz Labs",
+                "category": "video/topazlabs",
                 "description": "Video denoising and compression artifact removal with temporal consistency and detail preservation.",
                 "display_name": "Topaz Video Denoise"
             }
