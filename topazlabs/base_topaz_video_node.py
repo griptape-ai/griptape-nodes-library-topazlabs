@@ -5,9 +5,9 @@ import time
 from typing import Dict, Any, Optional
 from griptape.artifacts import UrlArtifact, BlobArtifact
 
-
 from griptape_nodes.exe_types.node_types import DataNode
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
+from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
 
@@ -231,7 +231,7 @@ class BaseTopazVideoNode(DataNode):
         Raises:
             ValueError: If API key is not found
         """
-        api_key = self.get_config_value(service=SERVICE, value=API_KEY_ENV_VAR)
+        api_key = GriptapeNodes.SecretsManager().get_secret(API_KEY_ENV_VAR)
         if not api_key:
             raise ValueError(f"API key not found. Please set the {API_KEY_ENV_VAR} environment variable.")
         return api_key
