@@ -3,10 +3,12 @@
     "library_schema_version": "0.1.0",
     "settings": [
         {
-            "description": "Environment variables for storing secrets for Topaz Labs nodes",
-            "category": "nodes.TOPAZ_LABS",
+            "description": "API keys required by nodes in this library",
+            "category": "app_events.on_app_initialization_complete",
             "contents": {
-                "TOPAZ_LABS_API_KEY": "$TOPAZ_LABS_API_KEY"
+                "secrets_to_register": [
+                    "TOPAZ_LABS_API_KEY"
+                ]
             }
         }
     ],
