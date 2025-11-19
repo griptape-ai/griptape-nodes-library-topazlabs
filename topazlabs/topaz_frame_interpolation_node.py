@@ -103,6 +103,9 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
                 ui_options={"display_name": "Duplicate Threshold", "step": 0.01}
             )
         )
+        
+        # Add output parameters in the correct order
+        self._add_output_parameters()
     
     def _build_source_info(self, video_bytes: bytes) -> Dict[str, Any]:
         """Build source video information for the API request.
@@ -152,7 +155,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
         
         return [filter_config]
     
-    def process(self) -> None:
+    async def _process_async(self) -> None:
         """Process the video with frame interpolation."""
         try:
             self._update_status("Starting frame interpolation...", show=True)
@@ -220,19 +223,17 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
             client.complete_video_upload(request_id, etag)
             self._update_status("Upload complete, processing started...", show=True)
             
-            # Poll for completion with progress updates
+            # Poll for completion
+            import asyncio
             import time
             start_time = time.time()
             while time.time() - start_time < timeout_seconds:
                 status = client.get_video_status(request_id)
                 
                 current_status = status.get("status", "unknown")
-                progress_percent = status.get("progress", 0)
                 status_message = status.get("message", f"Processing... (status: {current_status})")
                 
-                # Update progress and status only if API provides progress
-                if progress_percent > 0:
-                    self._update_progress(round(progress_percent))
+                # Update status
                 self._update_status(status_message, show=True)
                 
                 if current_status == "complete":
@@ -256,7 +257,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
                     raise Exception(f"Video processing failed: {error_message}")
                 
                 # Wait before next poll
-                time.sleep(15)
+                await asyncio.sleep(15)
             else:
                 raise TimeoutError(f"Video processing did not complete within {timeout_seconds} seconds")
             

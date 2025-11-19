@@ -115,8 +115,11 @@ class TopazEnhanceNode(BaseTopazNode):
                 }
             )
         )
+        
+        # Add output parameters in the correct order
+        self._add_output_parameters()
     
-    def process(self) -> None:
+    async def _process_async(self) -> None:
         """Process the image using Topaz Labs Enhance API."""
         try:
             # Update status
@@ -205,13 +208,13 @@ class TopazEnhanceNode(BaseTopazNode):
             self._update_status(error_message, show=True)
             raise Exception(error_message)
     
-    def validate_node(self) -> list[Exception] | None:
-        """Validate the enhance node configuration.
+    def validate_before_node_run(self) -> list[Exception] | None:
+        """Validate the enhance node configuration before execution.
         
         Returns:
             List of validation errors, or None if valid
         """
-        errors = super().validate_node() or []
+        errors = super().validate_before_node_run() or []
         
         # Validate parameter ranges
         params_to_validate = [
@@ -229,4 +232,7 @@ class TopazEnhanceNode(BaseTopazNode):
                     display_name = param_name.replace("_", " ").title()
                     errors.append(ValueError(f"{display_name} must be between {param_range[0]} and {param_range[1]}"))
         
-        return errors if errors else None 
+        return errors if errors else None
+    
+    def validate_before_workflow_run(self) -> list[Exception] | None:
+        return self.validate_before_node_run() 

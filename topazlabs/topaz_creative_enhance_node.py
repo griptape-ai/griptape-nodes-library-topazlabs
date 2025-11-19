@@ -144,8 +144,11 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 }
             )
         )
+        
+        # Add output parameters in the correct order
+        self._add_output_parameters()
     
-    def process(self) -> None:
+    async def _process_async(self) -> None:
         """Process the image using Topaz Labs Enhance Generative models."""
         try:
             # Get input image
@@ -239,8 +242,8 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
         except Exception as e:
             raise RuntimeError(f"Enhance Generative processing failed: {str(e)}")
     
-    def validate_node(self) -> list[Exception] | None:
-        """Validate that required configuration is available."""
+    def validate_before_node_run(self) -> list[Exception] | None:
+        """Validate that required configuration is available before execution."""
         errors = []
         
         # Check API key
@@ -249,4 +252,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
         except Exception as e:
             errors.append(e)
         
-        return errors if errors else None 
+        return errors if errors else None
+    
+    def validate_before_workflow_run(self) -> list[Exception] | None:
+        return self.validate_before_node_run() 
