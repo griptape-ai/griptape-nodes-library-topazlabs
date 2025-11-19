@@ -1,8 +1,9 @@
 """Base node for Topaz Labs operations."""
 
+import asyncio
 from typing import Dict, Any, Optional
 from griptape.artifacts import ImageArtifact, ImageUrlArtifact
-from griptape_nodes.exe_types.node_types import DataNode, BaseNode
+from griptape_nodes.exe_types.node_types import ControlNode, AsyncResult
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
 from griptape_nodes.traits.options import Options
@@ -12,7 +13,7 @@ from constants import SERVICE, API_KEY_ENV_VAR, OUTPUT_FORMATS
 from topaz_client import TopazClient
 
 
-class BaseTopazNode(DataNode):
+class BaseTopazNode(ControlNode):
     """Base class for all Topaz Labs image processing nodes."""
     
     def __init__(self, name: str, metadata: dict[Any, Any] | None = None) -> None:
@@ -203,8 +204,8 @@ class BaseTopazNode(DataNode):
         if status_param and hasattr(status_param, '_ui_options'):
             status_param._ui_options["hide"] = not show
     
-    def validate_node(self) -> list[Exception] | None:
-        """Validate the node configuration.
+    def validate_before_node_run(self) -> list[Exception] | None:
+        """Validate the node configuration before execution.
         
         Returns:
             List of validation errors, or None if valid
@@ -219,6 +220,22 @@ class BaseTopazNode(DataNode):
         
         return errors if errors else None
     
-    def process(self) -> None:
-        """Abstract process method - must be implemented by subclasses."""
-        raise NotImplementedError("Subclasses must implement the process method") 
+    def validate_before_workflow_run(self) -> list[Exception] | None:
+        return self.validate_before_node_run()
+    
+    def process(self) -> AsyncResult[None]:
+        """Non-blocking entry point for Griptape engine."""
+        yield lambda: self._process_sync()
+    
+    def _process_sync(self) -> None:
+        """Synchronous wrapper that runs async code."""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(self._process_async())
+        finally:
+            loop.close()
+    
+    async def _process_async(self) -> None:
+        """Abstract async process method - must be implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement the _process_async method") 

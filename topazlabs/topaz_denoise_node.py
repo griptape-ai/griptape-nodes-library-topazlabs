@@ -87,7 +87,7 @@ class TopazDenoiseNode(BaseTopazNode):
             )
         )
     
-    def process(self) -> None:
+    async def _process_async(self) -> None:
         """Process the image using Topaz Labs Denoise API."""
         try:
             # Update status
@@ -155,13 +155,13 @@ class TopazDenoiseNode(BaseTopazNode):
             self._update_status(error_message, show=True)
             raise Exception(error_message)
     
-    def validate_node(self) -> list[Exception] | None:
-        """Validate the denoise node configuration.
+    def validate_before_node_run(self) -> list[Exception] | None:
+        """Validate the denoise node configuration before execution.
         
         Returns:
             List of validation errors, or None if valid
         """
-        errors = super().validate_node() or []
+        errors = super().validate_before_node_run() or []
         
         # Validate parameter ranges
         strength = self.get_parameter_value("strength")
@@ -182,4 +182,7 @@ class TopazDenoiseNode(BaseTopazNode):
             if not (original_detail_range[0] <= original_detail <= original_detail_range[1]):
                 errors.append(ValueError(f"Original detail must be between {original_detail_range[0]} and {original_detail_range[1]}"))
         
-        return errors if errors else None 
+        return errors if errors else None
+    
+    def validate_before_workflow_run(self) -> list[Exception] | None:
+        return self.validate_before_node_run() 

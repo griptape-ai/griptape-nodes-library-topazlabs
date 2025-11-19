@@ -152,7 +152,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
         
         return [filter_config]
     
-    def process(self) -> None:
+    async def _process_async(self) -> None:
         """Process the video with frame interpolation."""
         try:
             self._update_status("Starting frame interpolation...", show=True)
@@ -221,6 +221,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
             self._update_status("Upload complete, processing started...", show=True)
             
             # Poll for completion with progress updates
+            import asyncio
             import time
             start_time = time.time()
             while time.time() - start_time < timeout_seconds:
@@ -256,7 +257,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
                     raise Exception(f"Video processing failed: {error_message}")
                 
                 # Wait before next poll
-                time.sleep(15)
+                await asyncio.sleep(15)
             else:
                 raise TimeoutError(f"Video processing did not complete within {timeout_seconds} seconds")
             
