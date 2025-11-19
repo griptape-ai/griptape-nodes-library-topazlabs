@@ -36,7 +36,7 @@ class BaseTopazNode(ControlNode):
             )
         )
         
-        # Output format selection
+        # Output format selection (configuration parameter)
         self.add_parameter(
             Parameter(
                 name="output_format",
@@ -48,23 +48,17 @@ class BaseTopazNode(ControlNode):
                 ui_options={"display_name": "Output Format"}
             )
         )
+    
+    def _add_output_parameters(self) -> None:
+        """Add output parameters after configuration parameters.
         
-        # Status message for user feedback
-        self.add_parameter(
-            Parameter(
-                name="status",
-                tooltip="Processing status and messages",
-                type="str",
-                allowed_modes={ParameterMode.OUTPUT},
-                ui_options={
-                    "multiline": True,
-                    "hide": False,
-                    "display_name": "Status",
-                    "placeholder_text": "Status messages"
-                }
-            )
-        )
-        
+        This method should be called by subclasses after they add their
+        configuration parameters to ensure proper parameter ordering:
+        1. Input parameters
+        2. Configuration parameters
+        3. Output parameters
+        4. Status parameter
+        """
         # Common output parameter for processed image
         self.add_parameter(
             Parameter(
@@ -76,6 +70,22 @@ class BaseTopazNode(ControlNode):
                 ui_options={
                     "display_name": "Output Image",
                     "pulse_on_run": True
+                }
+            )
+        )
+        
+        # Status message for user feedback (always last)
+        self.add_parameter(
+            Parameter(
+                name="status",
+                tooltip="Processing status and messages",
+                type="str",
+                allowed_modes={ParameterMode.OUTPUT},
+                ui_options={
+                    "multiline": True,
+                    "hide": False,
+                    "display_name": "Status",
+                    "placeholder_text": "Status messages"
                 }
             )
         )

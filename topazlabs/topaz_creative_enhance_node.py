@@ -144,6 +144,9 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 }
             )
         )
+        
+        # Add output parameters in the correct order
+        self._add_output_parameters()
     
     async def _process_async(self) -> None:
         """Process the image using Topaz Labs Enhance Generative models."""

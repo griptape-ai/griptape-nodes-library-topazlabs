@@ -164,33 +164,27 @@ class BaseTopazVideoNode(ControlNode):
                 ui_options={"display_name": "Timeout (minutes)"}
             )
         )
+    
+    def _add_output_parameters(self) -> None:
+        """Add output parameters after configuration parameters.
         
-        # Status message for user feedback
+        This method should be called by subclasses after they add their
+        configuration parameters to ensure proper parameter ordering:
+        1. Input parameters
+        2. Configuration parameters
+        3. Output parameters
+        4. Status parameter (always last)
+        """
+        # Video output parameter
         self.add_parameter(
             Parameter(
-                name="status",
-                tooltip="Processing status and messages",
-                type="str",
+                name="video_output",
+                tooltip="Processed video output",
+                type="VideoUrlArtifact",
+                output_type="VideoUrlArtifact",
                 allowed_modes={ParameterMode.OUTPUT},
                 ui_options={
-                    "multiline": True,
-                    "hide": False,
-                    "display_name": "Status",
-                    "placeholder_text": "Status messages"
-                }
-            )
-        )
-        
-        # Progress output
-        self.add_parameter(
-            Parameter(
-                name="progress",
-                tooltip="Processing progress percentage",
-                type=ParameterTypeBuiltin.INT.value,
-                default_value=0,
-                allowed_modes={ParameterMode.OUTPUT},
-                ui_options={
-                    "display_name": "Progress (%)",
+                    "display_name": "Output Video",
                     "pulse_on_run": True
                 }
             )
@@ -208,17 +202,18 @@ class BaseTopazVideoNode(ControlNode):
             )
         )
         
-        # Video output parameter
+        # Status message for user feedback (always last)
         self.add_parameter(
             Parameter(
-                name="video_output",
-                tooltip="Processed video output",
-                type="VideoUrlArtifact",
-                output_type="VideoUrlArtifact",
+                name="status",
+                tooltip="Processing status and messages",
+                type="str",
                 allowed_modes={ParameterMode.OUTPUT},
                 ui_options={
-                    "display_name": "Output Video",
-                    "pulse_on_run": True
+                    "multiline": True,
+                    "hide": False,
+                    "display_name": "Status",
+                    "placeholder_text": "Status messages"
                 }
             )
         )
@@ -357,20 +352,14 @@ class BaseTopazVideoNode(ControlNode):
             status_param._ui_options["hide"] = not show
     
     def _update_progress(self, progress: int) -> None:
-        """Update the progress parameter.
+        """Update the progress parameter (deprecated - no-op).
         
         Args:
-            progress: Progress percentage (0-100)
+            progress: Progress percentage (0-100) - ignored
         """
-        progress_value = max(0, min(100, progress))
-        self.parameter_output_values["progress"] = progress_value
-        
-        # Also try to publish the update if the method exists
-        if hasattr(self, 'publish_update_to_parameter'):
-            try:
-                self.publish_update_to_parameter("progress", progress_value)
-            except:
-                pass  # Fallback silently if method doesn't work
+        # Progress parameter has been removed - this method is now a no-op
+        # Kept for backward compatibility with existing code
+        pass
     
     def _get_output_config(self) -> Dict[str, Any]:
         """Build output configuration from node parameters.
