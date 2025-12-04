@@ -9,6 +9,7 @@ from griptape.artifacts import UrlArtifact, BlobArtifact
 from griptape_nodes.exe_types.node_types import ControlNode, AsyncResult
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
+from griptape_nodes.retained_mode.events.os_events import ExistingFilePolicy
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
 
@@ -318,7 +319,7 @@ class BaseTopazVideoNode(ControlNode):
             
             # Save to managed file location and get URL
             static_url = GriptapeNodes.StaticFilesManager().save_static_file(
-                video_data, filename
+                video_data, filename, ExistingFilePolicy.CREATE_NEW
             )
             
             return VideoUrlArtifact(
