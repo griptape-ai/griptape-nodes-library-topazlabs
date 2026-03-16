@@ -10,38 +10,19 @@ VIDEO_API_BASE_URL = "https://api.topazlabs.com/video"
 OUTPUT_FORMATS = ["jpeg", "png", "webp"]
 
 # Denoise models
-DENOISE_MODELS = [
-    "Normal",
-    "Strong", 
-    "Extreme"
-]
+DENOISE_MODELS = ["Normal", "Strong", "Extreme"]
 
 # Enhance models - Standard class (fast, high fidelity)
-ENHANCE_MODELS = [
-    "Standard V2",
-    "Low Resolution V2",
-    "CGI",
-    "High Fidelity V2",
-    "Text Refine"
-]
+ENHANCE_MODELS = ["Standard V2", "Low Resolution V2", "CGI", "High Fidelity V2", "Text Refine"]
 
 # Generative enhance models (per OpenAPI spec)
-ENHANCE_GENERATIVE_MODELS = [
-    "Recovery",
-    "Recovery V2", 
-    "Redefine"
-]
+ENHANCE_GENERATIVE_MODELS = ["Recovery", "Recovery V2", "Redefine"]
 
 # Creative enhance models (alias for generative models)
 CREATIVE_ENHANCE_MODELS = ENHANCE_GENERATIVE_MODELS
 
 # Parameter defaults and ranges
-DENOISE_DEFAULTS = {
-    "model": "Normal",
-    "strength": 0.5,
-    "minor_deblur": 0.1,
-    "original_detail": 0.5
-}
+DENOISE_DEFAULTS = {"model": "Normal", "strength": 0.5, "minor_deblur": 0.1, "original_detail": 0.5}
 
 ENHANCE_DEFAULTS = {
     "model": "Standard V2",
@@ -49,7 +30,7 @@ ENHANCE_DEFAULTS = {
     "denoise": 0.0,
     "fix_compression": 0.0,
     "face_enhancement": False,
-    "face_enhancement_strength": 0.5
+    "face_enhancement_strength": 0.5,
 }
 
 # Creative enhancement defaults for generative models - Updated for GAN models
@@ -59,7 +40,7 @@ ENHANCE_CREATIVE_DEFAULTS = {
     "denoise": 0.0,
     "fix_compression": 0.0,
     "face_enhancement": True,
-    "face_enhancement_strength": 0.7
+    "face_enhancement_strength": 0.7,
 }
 
 # Creative enhance defaults (alias for consistency)
@@ -77,7 +58,7 @@ PARAMETER_RANGES = {
     "creativity": (1, 6),
     "texture": (1, 5),
     "focus_boost": (0.25, 1.0),
-    "seed": (0, 999999)
+    "seed": (0, 999999),
 }
 
 # Video API Constants
@@ -90,7 +71,6 @@ VIDEO_MODELS = {
     "amq-13": "Medium-quality enhancement",
     "amqs-2": "Medium-quality specialized processing",
     "apf-2": "Professional film enhancement",
-    
     # Denoising & Compression Recovery
     "chf-3": "Compression artifact removal",
     "chr-2": "Compression recovery",
@@ -99,7 +79,6 @@ VIDEO_MODELS = {
     "dtds-2": "Digital temporal denoising specialized",
     "dtv-4": "Digital temporal video processing",
     "dtvs-2": "Digital temporal video specialized",
-    
     # Frame Interpolation & Motion Enhancement
     "gcg-5": "General content generation",
     "ghq-5": "High-quality generation",
@@ -107,7 +86,6 @@ VIDEO_MODELS = {
     "iris-3": "Advanced resolution improvement",
     "nxf-1": "Next-gen frame processing",
     "nyx-3": "Advanced motion processing",
-    
     # Sharpening & Texture Recovery
     "prob-4": "Professional broadcast quality",
     "rhea-1": "Generative AI upscaling",
@@ -115,9 +93,8 @@ VIDEO_MODELS = {
     "thd-3": "Texture and detail enhancement",
     "thf-4": "Texture high-fidelity",
     "thm-2": "Texture medium processing",
-    
     # Popular presets
-    "apo-8": "Frame interpolation (60fps conversion)"
+    "apo-8": "Frame interpolation (60fps conversion)",
 }
 
 VIDEO_CONTAINERS = ["mp4", "mov", "avi"]
@@ -145,7 +122,7 @@ VIDEO_DEFAULTS = {
     "audio_transfer": "Copy",
     "audio_bitrate": "320",
     "compression_level": "High",
-    "crop_to_fit": False
+    "crop_to_fit": False,
 }
 
 # Video parameter ranges
@@ -157,5 +134,5 @@ VIDEO_PARAMETER_RANGES = {
     "noise": (0.0, 1.0),
     "sharpen": (0.0, 1.0),
     "focus_fix_level": (0.0, 1.0),
-    "recover_original_detail_value": (0.0, 1.0)
-} 
+    "recover_original_detail_value": (0.0, 1.0),
+}
