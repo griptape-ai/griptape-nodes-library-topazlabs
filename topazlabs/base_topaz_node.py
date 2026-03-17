@@ -7,7 +7,7 @@ from constants import API_KEY_ENV_VAR, OUTPUT_FORMATS
 from griptape.artifacts import ImageArtifact, ImageUrlArtifact
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.exe_types.node_types import AsyncResult, ControlNode
-from griptape_nodes.retained_mode.events.os_events import ExistingFilePolicy
+from griptape_nodes.exe_types.param_components.project_file_parameter import ProjectFileParameter
 from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
 from griptape_nodes.traits.options import Options
 from topaz_client import TopazClient
@@ -59,6 +59,14 @@ class BaseTopazNode(ControlNode):
         3. Output parameters
         4. Status parameter
         """
+        # File destination parameter for configuring where output is saved
+        self._output_file = ProjectFileParameter(
+            node=self,
+            name="output_file",
+            default_filename="processed_image.jpeg",
+        )
+        self._output_file.add_parameter()
+
         # Common output parameter for processed image
         self.add_parameter(
             Parameter(
@@ -177,27 +185,9 @@ class BaseTopazNode(ControlNode):
             Exception: If saving fails
         """
         try:
-            # Import inside method to avoid caching issues
-            from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
-
-            # Get output format
-            output_format = self.get_parameter_value("output_format") or "jpeg"
-
-            # Generate unique filename with timestamp and hash (following kontext pattern)
-            import hashlib
-            import time
-
-            timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
-            content_hash = hashlib.md5(image_data).hexdigest()[:8]  # Short hash of content
-            filename = f"{filename_hint}_{timestamp}_{content_hash}.{output_format.lower()}"
-
-            # Save to managed file location and get URL
-            static_url = GriptapeNodes.StaticFilesManager().save_static_file(
-                image_data, filename, ExistingFilePolicy.CREATE_NEW
-            )
-
-            return ImageUrlArtifact(value=static_url, name=f"{filename_hint}_{timestamp}")
-
+            dest = self._output_file.build_file()
+            saved = dest.write_bytes(image_data)
+            return ImageUrlArtifact(value=saved.location, name=filename_hint)
         except Exception as e:
             raise Exception(f"Failed to save output image: {str(e)}")
 

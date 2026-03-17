@@ -18,7 +18,7 @@ from constants import (
 from griptape.artifacts import BlobArtifact, UrlArtifact
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.exe_types.node_types import AsyncResult, ControlNode
-from griptape_nodes.retained_mode.events.os_events import ExistingFilePolicy
+from griptape_nodes.exe_types.param_components.project_file_parameter import ProjectFileParameter
 from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
@@ -184,6 +184,14 @@ class BaseTopazVideoNode(ControlNode):
         3. Output parameters
         4. Status parameter (always last)
         """
+        # File destination parameter for configuring where output is saved
+        self._output_file = ProjectFileParameter(
+            node=self,
+            name="output_file",
+            default_filename="processed_video.mp4",
+        )
+        self._output_file.add_parameter()
+
         # Video output parameter
         self.add_parameter(
             Parameter(
@@ -315,24 +323,9 @@ class BaseTopazVideoNode(ControlNode):
             Exception: If saving fails
         """
         try:
-            # Import inside method to avoid caching issues
-            from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
-
-            # Get output format
-            output_container = self.get_parameter_value("output_container") or "mp4"
-
-            # Generate unique filename with timestamp and hash
-            timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
-            content_hash = hashlib.md5(video_data).hexdigest()[:8]  # Short hash of content
-            filename = f"{filename_hint}_{timestamp}_{content_hash}.{output_container.lower()}"
-
-            # Save to managed file location and get URL
-            static_url = GriptapeNodes.StaticFilesManager().save_static_file(
-                video_data, filename, ExistingFilePolicy.CREATE_NEW
-            )
-
-            return VideoUrlArtifact(url=static_url, name=f"{filename_hint}_{timestamp}")
-
+            dest = self._output_file.build_file()
+            saved = dest.write_bytes(video_data)
+            return VideoUrlArtifact(url=saved.location, name=filename_hint)
         except Exception as e:
             raise Exception(f"Failed to save output video: {str(e)}")
 
