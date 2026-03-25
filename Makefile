@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 LIBRARY_JSON := topazlabs/griptape_nodes_library.json
 
 .PHONY: version/get
