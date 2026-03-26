@@ -8,6 +8,7 @@ from griptape.artifacts import ImageArtifact, ImageUrlArtifact
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.exe_types.node_types import AsyncResult, ControlNode
 from griptape_nodes.exe_types.param_components.project_file_parameter import ProjectFileParameter
+from griptape_nodes.files.file import File
 from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
 from griptape_nodes.traits.options import Options
 from topaz_client import TopazClient
@@ -140,7 +141,10 @@ class BaseTopazNode(ControlNode):
             # Debug info to track image changes - create a hash to detect changes
             import hashlib
 
-            if isinstance(image_artifact, (ImageArtifact, ImageUrlArtifact)):
+            if isinstance(image_artifact, ImageUrlArtifact):
+                # Use File to resolve template paths like {outputs}/... to real file paths
+                image_bytes = File(image_artifact.value).read_bytes()
+            elif isinstance(image_artifact, ImageArtifact):
                 image_bytes = image_artifact.to_bytes()
             else:
                 # Try to convert to bytes if it's a different artifact type
