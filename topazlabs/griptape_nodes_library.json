@@ -28,7 +28,9 @@
             "Frame Interpolation"
         ],
         "dependencies": {
-            "pip_dependencies": []
+            "pip_dependencies": [
+                "requests"
+            ]
         }
     },
     "categories": [
