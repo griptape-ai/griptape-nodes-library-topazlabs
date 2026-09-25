@@ -29,7 +29,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 tooltip="Generative enhancement model to use: Redefine for creative changes, Recovery for restoring details.",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="Redefine",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=["Redefine", "Recovery", "Recovery V2"])},
                 ui_options={"display_name": "Model"},
             )
@@ -58,7 +58,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 tooltip="Use auto-prompting model to generate a prompt. If enabled, ignores manual prompt input.",
                 type=ParameterTypeBuiltin.BOOL.value,
                 default_value=False,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 ui_options={"display_name": "Auto Prompt"},
             )
         )
@@ -70,7 +70,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 tooltip="Lower values maintain highest fidelity. Higher values provide more creative results (1-6).",
                 type=ParameterTypeBuiltin.INT.value,
                 default_value=3,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=1, max_val=6)},
                 ui_options={"display_name": "Creativity", "step": 1},
             )
@@ -83,7 +83,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 tooltip="Add texture to the image. Recommend 1 for low creativity, 3 for higher creativity (1-5).",
                 type=ParameterTypeBuiltin.INT.value,
                 default_value=1,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=1, max_val=5)},
                 ui_options={"display_name": "Texture", "step": 1},
             )
@@ -96,7 +96,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 tooltip="Slightly sharpens the image (0.0-1.0)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.0,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Sharpen", "step": 0.1},
             )
@@ -109,7 +109,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 tooltip="Reduces noise in the image (0.0-1.0)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.0,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Denoise", "step": 0.1},
             )
@@ -122,7 +122,7 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
                 tooltip="Adjusts the level of added detail after rendering (0.0-1.0)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.5,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Detail", "step": 0.1},
             )
