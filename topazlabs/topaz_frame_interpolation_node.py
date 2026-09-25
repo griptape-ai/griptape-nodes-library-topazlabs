@@ -42,7 +42,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
                 tooltip="AI model for frame interpolation",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="apo-8",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=interpolation_models)},
                 ui_options={"display_name": "Interpolation Model"},
             )
@@ -56,7 +56,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
                 tooltip="Target output frame rate",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="60.0",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=target_fps_options)},
                 ui_options={"display_name": "Target FPS"},
             )
@@ -69,7 +69,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
                 tooltip="Slow motion multiplier (1 = normal speed, 2 = 2x slower, etc.)",
                 type=ParameterTypeBuiltin.INT.value,
                 default_value=1,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=1, max_val=8)},
                 ui_options={"display_name": "Slow Motion Factor"},
             )
@@ -82,7 +82,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
                 tooltip="Remove duplicate frames during processing",
                 type=ParameterTypeBuiltin.BOOL.value,
                 default_value=True,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 ui_options={"display_name": "Remove Duplicate Frames"},
             )
         )
@@ -94,7 +94,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
                 tooltip="Threshold for detecting duplicate frames (0.0 = strict, 1.0 = lenient)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.1,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Duplicate Threshold", "step": 0.01},
             )

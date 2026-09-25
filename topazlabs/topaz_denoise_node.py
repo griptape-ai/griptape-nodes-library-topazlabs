@@ -28,7 +28,7 @@ class TopazDenoiseNode(BaseTopazNode):
                 tooltip="Denoise model preset. Normal for light noise, Strong for moderate noise, Extreme for heavy noise.",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value=DENOISE_DEFAULTS["model"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=DENOISE_MODELS)},
                 ui_options={"display_name": "Denoise Model"},
             )
@@ -42,7 +42,7 @@ class TopazDenoiseNode(BaseTopazNode):
                 tooltip="How aggressive the noise reduction should be (0.01 - 1.0). Higher values remove more noise but may also remove fine details.",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=DENOISE_DEFAULTS["strength"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=strength_range[0], max_val=strength_range[1])},
                 ui_options={"display_name": "Strength", "step": 0.01},
             )
@@ -56,7 +56,7 @@ class TopazDenoiseNode(BaseTopazNode):
                 tooltip="Mild sharpening applied after noise reduction (0.01 - 1.0). Helps restore sharpness lost during denoising.",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=DENOISE_DEFAULTS["minor_deblur"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=minor_deblur_range[0], max_val=minor_deblur_range[1])},
                 ui_options={"display_name": "Minor Deblur", "step": 0.01},
             )
@@ -70,7 +70,7 @@ class TopazDenoiseNode(BaseTopazNode):
                 tooltip="Restore fine texture lost during denoising (0.0 - 1.0). Higher values preserve more original detail but may retain some noise.",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=DENOISE_DEFAULTS["original_detail"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=original_detail_range[0], max_val=original_detail_range[1])},
                 ui_options={"display_name": "Original Detail", "step": 0.01},
             )

@@ -45,7 +45,7 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
                 tooltip="AI model for video upscaling",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="prob-4",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=upscaling_models)},
                 ui_options={"display_name": "Upscaling Model"},
             )
@@ -59,7 +59,7 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
                 tooltip="Resolution upscaling factor",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="2x",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=upscale_factors)},
                 ui_options={"display_name": "Upscale Factor"},
             )
@@ -72,7 +72,7 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
                 tooltip="Enhance fine details and textures (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.5,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Detail Enhancement", "step": 0.01},
             )
@@ -85,7 +85,7 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
                 tooltip="Edge sharpening intensity (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.0,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Sharpening", "step": 0.01},
             )
@@ -98,7 +98,7 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
                 tooltip="Noise reduction intensity (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.0,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Noise Reduction", "step": 0.01},
             )
@@ -111,7 +111,7 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
                 tooltip="Remove compression artifacts (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.0,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Compression Recovery", "step": 0.01},
             )
@@ -124,7 +124,7 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
                 tooltip="Fix blur and focus issues (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.0,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Focus Fix", "step": 0.01},
             )
@@ -137,7 +137,7 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
                 tooltip="Attempt to recover lost original details (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.0,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Original Detail Recovery", "step": 0.01},
             )

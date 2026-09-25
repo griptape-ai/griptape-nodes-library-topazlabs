@@ -44,7 +44,7 @@ class BaseTopazNode(ControlNode):
                 tooltip="Output image format",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="jpeg",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=OUTPUT_FORMATS)},
                 ui_options={"display_name": "Output Format"},
             )

@@ -43,7 +43,7 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
                 tooltip="AI model for video denoising",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="nyx-3",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=denoising_models)},
                 ui_options={"display_name": "Denoising Model"},
             )
@@ -56,7 +56,7 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
                 tooltip="Use automatic processing based on content analysis",
                 type=ParameterTypeBuiltin.BOOL.value,
                 default_value=True,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 ui_options={"display_name": "Auto Mode"},
             )
         )
@@ -69,7 +69,7 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
                 tooltip="Type of automatic processing when auto mode is enabled",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="Relative",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=auto_types)},
                 ui_options={"display_name": "Auto Type"},
             )
@@ -82,7 +82,7 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
                 tooltip="Noise reduction intensity (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.5,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Noise Intensity", "step": 0.01},
             )
@@ -95,7 +95,7 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
                 tooltip="Remove compression artifacts (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.3,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Compression Recovery", "step": 0.01},
             )
@@ -108,7 +108,7 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
                 tooltip="Preserve fine details during denoising (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.7,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Detail Preservation", "step": 0.01},
             )
@@ -121,7 +121,7 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
                 tooltip="Maintain consistency across frames (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.8,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Temporal Consistency", "step": 0.01},
             )
@@ -134,7 +134,7 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
                 tooltip="Mild sharpening to counteract softening (0.0 = none, 1.0 = maximum)",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=0.1,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=0.0, max_val=1.0)},
                 ui_options={"display_name": "Sharpening", "step": 0.01},
             )

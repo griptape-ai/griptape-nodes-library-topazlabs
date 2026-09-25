@@ -28,7 +28,7 @@ class TopazEnhanceNode(BaseTopazNode):
                 tooltip="Enhancement model preset. Standard V2 for balanced enhancement, High Fidelity V2 for preserving detail, Low Resolution V2 for web images.",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value=ENHANCE_DEFAULTS["model"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=ENHANCE_MODELS)},
                 ui_options={"display_name": "Enhancement Model"},
             )
@@ -42,7 +42,7 @@ class TopazEnhanceNode(BaseTopazNode):
                 tooltip="Optional additional sharpening (0.0 - 1.0). 0 means no extra sharpening beyond the model's default.",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=ENHANCE_DEFAULTS["sharpen"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=sharpen_range[0], max_val=sharpen_range[1])},
                 ui_options={"display_name": "Sharpen", "step": 0.01},
             )
@@ -56,7 +56,7 @@ class TopazEnhanceNode(BaseTopazNode):
                 tooltip="Optional denoising during enhancement (0.0 - 1.0). Useful for images with noise that should be cleaned up.",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=ENHANCE_DEFAULTS["denoise"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=denoise_range[0], max_val=denoise_range[1])},
                 ui_options={"display_name": "Denoise", "step": 0.01},
             )
@@ -70,7 +70,7 @@ class TopazEnhanceNode(BaseTopazNode):
                 tooltip="Fix lossy image artifacts from JPEG compression (0.0 - 1.0). Higher values more aggressively fix compression artifacts.",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=ENHANCE_DEFAULTS["fix_compression"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=fix_compression_range[0], max_val=fix_compression_range[1])},
                 ui_options={"display_name": "Fix Compression", "step": 0.01},
             )
@@ -83,7 +83,7 @@ class TopazEnhanceNode(BaseTopazNode):
                 tooltip="Enable face-specific enhancements for better facial detail restoration.",
                 type=ParameterTypeBuiltin.BOOL.value,
                 default_value=ENHANCE_DEFAULTS["face_enhancement"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 ui_options={"display_name": "Face Enhancement"},
             )
         )
@@ -96,7 +96,7 @@ class TopazEnhanceNode(BaseTopazNode):
                 tooltip="How strong facial enhancement should be (0.0 - 1.0). Only applies when Face Enhancement is enabled.",
                 type=ParameterTypeBuiltin.FLOAT.value,
                 default_value=ENHANCE_DEFAULTS["face_enhancement_strength"],
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=face_strength_range[0], max_val=face_strength_range[1])},
                 ui_options={"display_name": "Face Enhancement Strength", "step": 0.01},
             )

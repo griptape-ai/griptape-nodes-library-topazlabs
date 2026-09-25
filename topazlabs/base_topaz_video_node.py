@@ -66,7 +66,7 @@ class BaseTopazVideoNode(ControlNode):
                 tooltip="Output video container format",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="mp4",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=VIDEO_CONTAINERS)},
                 ui_options={"display_name": "Container Format"},
             )
@@ -79,7 +79,7 @@ class BaseTopazVideoNode(ControlNode):
                 tooltip="Video encoding codec",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="H265",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=VIDEO_CODECS)},
                 ui_options={"display_name": "Video Encoder"},
             )
@@ -92,7 +92,7 @@ class BaseTopazVideoNode(ControlNode):
                 tooltip="Video encoding profile",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="Main",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=VIDEO_PROFILES)},
                 ui_options={"display_name": "Video Profile"},
             )
@@ -105,7 +105,7 @@ class BaseTopazVideoNode(ControlNode):
                 tooltip="Audio encoding codec",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="AAC",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=AUDIO_CODECS)},
                 ui_options={"display_name": "Audio Codec"},
             )
@@ -118,7 +118,7 @@ class BaseTopazVideoNode(ControlNode):
                 tooltip="How to handle audio during processing",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="Copy",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=AUDIO_TRANSFER_MODES)},
                 ui_options={"display_name": "Audio Transfer"},
             )
@@ -131,7 +131,7 @@ class BaseTopazVideoNode(ControlNode):
                 tooltip="Audio bitrate in kbps",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="320",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=AUDIO_BITRATES)},
                 ui_options={"display_name": "Audio Bitrate (kbps)"},
             )
@@ -144,7 +144,7 @@ class BaseTopazVideoNode(ControlNode):
                 tooltip="Dynamic compression level for encoding",
                 type=ParameterTypeBuiltin.STR.value,
                 default_value="High",
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Options(choices=COMPRESSION_LEVELS)},
                 ui_options={"display_name": "Compression Level"},
             )
@@ -157,7 +157,7 @@ class BaseTopazVideoNode(ControlNode):
                 tooltip="Crop video to fit output resolution",
                 type=ParameterTypeBuiltin.BOOL.value,
                 default_value=False,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 ui_options={"display_name": "Crop to Fit"},
             )
         )
@@ -169,7 +169,7 @@ class BaseTopazVideoNode(ControlNode):
                 tooltip="Maximum time to wait for processing (minutes)",
                 type=ParameterTypeBuiltin.INT.value,
                 default_value=60,
-                allowed_modes={ParameterMode.PROPERTY},
+                allowed_modes={ParameterMode.INPUT, ParameterMode.PROPERTY},
                 traits={Slider(min_val=5, max_val=180)},
                 ui_options={"display_name": "Timeout (minutes)"},
             )
