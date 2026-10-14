@@ -7,6 +7,7 @@ from constants import DENOISE_DEFAULTS, DENOISE_MODELS, PARAMETER_RANGES
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
+from topaz_errors import empty_input_error, missing_input_error, out_of_range_error
 
 
 class TopazDenoiseNode(BaseTopazNode):
@@ -98,10 +99,10 @@ class TopazDenoiseNode(BaseTopazNode):
                     )
                 else:
                     self._update_status("No image input parameter or connections found", show=True)
-                raise ValueError("No input image provided")
+                raise missing_input_error("Input Image", "image")
 
             if not image_artifact:
-                raise ValueError("Input image is empty or falsy")
+                raise empty_input_error("Input Image", "image")
 
             # Debug: Log the type and basic info about the image artifact
             artifact_type = type(image_artifact).__name__
@@ -144,7 +145,7 @@ class TopazDenoiseNode(BaseTopazNode):
         except Exception as e:
             error_message = f"Error during denoising: {str(e)}"
             self._update_status(error_message, show=True)
-            raise Exception(error_message)
+            raise
 
     def validate_before_node_run(self) -> list[Exception] | None:
         """Validate the denoise node configuration before execution.
@@ -159,14 +160,18 @@ class TopazDenoiseNode(BaseTopazNode):
         if strength is not None:
             strength_range = PARAMETER_RANGES["strength"]
             if not (strength_range[0] <= strength <= strength_range[1]):
-                errors.append(ValueError(f"Strength must be between {strength_range[0]} and {strength_range[1]}"))
+                errors.append(
+                    out_of_range_error("Strength", strength, strength_range[0], strength_range[1], "strength")
+                )
 
         minor_deblur = self.get_parameter_value("minor_deblur")
         if minor_deblur is not None:
             minor_deblur_range = PARAMETER_RANGES["minor_deblur"]
             if not (minor_deblur_range[0] <= minor_deblur <= minor_deblur_range[1]):
                 errors.append(
-                    ValueError(f"Minor deblur must be between {minor_deblur_range[0]} and {minor_deblur_range[1]}")
+                    out_of_range_error(
+                        "Minor Deblur", minor_deblur, minor_deblur_range[0], minor_deblur_range[1], "minor_deblur"
+                    )
                 )
 
         original_detail = self.get_parameter_value("original_detail")
@@ -174,12 +179,13 @@ class TopazDenoiseNode(BaseTopazNode):
             original_detail_range = PARAMETER_RANGES["original_detail"]
             if not (original_detail_range[0] <= original_detail <= original_detail_range[1]):
                 errors.append(
-                    ValueError(
-                        f"Original detail must be between {original_detail_range[0]} and {original_detail_range[1]}"
+                    out_of_range_error(
+                        "Original Detail",
+                        original_detail,
+                        original_detail_range[0],
+                        original_detail_range[1],
+                        "original_detail",
                     )
                 )
 
         return errors if errors else None
-
-    def validate_before_workflow_run(self) -> list[Exception] | None:
-        return self.validate_before_node_run()
