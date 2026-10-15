@@ -279,7 +279,7 @@ class BaseTopazVideoNode(ControlNode):
             NodeError: If the video is missing, unreadable or empty
         """
         if not video_artifact:
-            raise missing_input_error("Input Video", "video")
+            raise missing_input_error("Input Video", "video", "video_input")
 
         try:
             # Extract video bytes
@@ -293,11 +293,11 @@ class BaseTopazVideoNode(ControlNode):
             else:
                 video_bytes = video_artifact.to_bytes()
         except Exception as e:
-            raise unreadable_input_error("Input Video", "video", e) from e
+            raise unreadable_input_error("Input Video", "video", "video_input", e) from e
 
         # Verify we have video data
         if not video_bytes or len(video_bytes) < 1000:
-            raise empty_input_error("Input Video", "video")
+            raise empty_input_error("Input Video", "video", "video_input")
 
         # Create hash to track video changes
         video_hash = hashlib.md5(video_bytes).hexdigest()[:8]

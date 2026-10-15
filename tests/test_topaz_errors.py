@@ -220,13 +220,13 @@ def test_missing_image_names_the_parameter() -> None:
     error = _raise_from_run(TopazEnhanceNode("Node"))
 
     assert str(error) == "No image is connected to 'Input Image'. Connect an image and run the node again."
-    assert error.fields == {"parameter": "Input Image"}
+    assert error.fields == {"parameter": "image_input"}
 
 
 def test_missing_video_names_the_parameter() -> None:
     error = _raise_from_run(TopazVideoUpscaleNode("Node"))
 
-    assert error.fields == {"parameter": "Input Video"}
+    assert error.fields == {"parameter": "video_input"}
     assert "'Input Video'" in str(error)
 
 
@@ -450,3 +450,74 @@ def test_video_completed_job_without_a_download_url_is_reported(http: FakeHttp) 
     )
     assert error.fields == {"request_id": "req-6"}
     assert error.response == {"status": "complete"}
+
+
+def _completed_video_job(download: Any) -> Responder:
+    """A video job that completes, with `download` answering the presigned download URL."""
+
+    def respond(request: requests.PreparedRequest) -> requests.Response | Exception:
+        url = request.url or ""
+        if "download.example" in url:
+            return download
+        if request.method == "POST":
+            return _response(200, body={"requestId": "req-7"})
+        if url.endswith("/accept"):
+            return _response(200, body={"urls": ["https://storage.example/upload"]})
+        if "storage.example" in url:
+            return _response(200, headers={"ETag": '"abc"'})
+        if url.endswith("/complete-upload"):
+            return _response(200, body={})
+        return _response(200, body={"status": "complete", "download": {"url": "https://download.example/out.mp4"}})
+
+    return respond
+
+
+VIDEO_NODES = [TopazVideoUpscaleNode, TopazVideoDenoiseNode, TopazFrameInterpolationNode]
+
+
+@pytest.mark.parametrize("node_class", VIDEO_NODES)
+def test_video_download_that_stalls_is_reported_as_a_timeout(http: FakeHttp, node_class: type) -> None:
+    _respond(http, _completed_video_job(requests.exceptions.Timeout("Read timed out")))
+
+    error = _raise_from_run(_video_node(node_class))
+
+    assert str(error) == "Topaz Labs did not answer in time. Run the node again."
+
+
+@pytest.mark.parametrize("node_class", VIDEO_NODES)
+def test_video_download_that_cannot_connect_is_reported_as_unreachable(http: FakeHttp, node_class: type) -> None:
+    _respond(http, _completed_video_job(requests.exceptions.ConnectionError("refused")))
+
+    error = _raise_from_run(_video_node(node_class))
+
+    assert str(error).startswith("Could not reach Topaz Labs.")
+
+
+@pytest.mark.parametrize("node_class", VIDEO_NODES)
+def test_video_download_failure_carries_the_status_and_request_id(http: FakeHttp, node_class: type) -> None:
+    _respond(http, _completed_video_job(_response(403, text="expired")))
+
+    error = _raise_from_run(_video_node(node_class))
+
+    assert str(error) == "Downloading the processed video failed with status 403. Run the node again."
+    assert error.fields == {"status_code": 403, "request_id": "req-7"}
+    assert error.response == {"body": "expired"}
+
+
+def test_generative_download_failure_reports_the_job_id_not_a_request_id(http: FakeHttp) -> None:
+    def respond(request: requests.PreparedRequest) -> requests.Response:
+        url = request.url or ""
+        if "download.example" in url:
+            return _response(403, text="expired")
+        if request.method == "POST":
+            return _response(200, body={"process_id": "proc-5"})
+        if "/download/" in url:
+            return _response(200, body={"download_url": "https://download.example/out.png"})
+        return _response(200, body={"status": "Completed"})
+
+    _respond(http, respond)
+
+    error = _raise_from_run(_image_node(TopazCreativeEnhanceNode))
+
+    assert str(error) == "Downloading the processed image failed with status 403. Run the node again."
+    assert error.fields == {"status_code": 403, "job_id": "proc-5"}

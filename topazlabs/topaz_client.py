@@ -143,16 +143,38 @@ class TopazClient:
         if not download_url:
             raise unexpected_response_error("the response has no download_url", download_info, job_id=process_id)
 
-        # Download the actual image from the presigned URL
+        return self.download_file(download_url, "Downloading the processed image", timeout=300, job_id=process_id)
+
+    def download_file(
+        self,
+        url: str,
+        action: str,
+        *,
+        timeout: int = 600,
+        request_id: str | None = None,
+        job_id: str | None = None,
+    ) -> bytes:
+        """Download a processed file from its presigned URL.
+
+        Args:
+            url: The presigned download URL
+            action: What the node is doing, as a phrase such as "Downloading the processed video"
+            timeout: Seconds to wait for the download
+            request_id: The video request this file belongs to, when there is one
+            job_id: The generative job this file belongs to, when there is one
+
+        Raises:
+            NodeError: If the download times out, cannot connect, or returns an error status.
+        """
         try:
-            download_response = requests.get(download_url, timeout=300)
+            response = requests.get(url, timeout=timeout)
         except requests.exceptions.Timeout as e:
             raise timeout_error() from e
         except requests.exceptions.ConnectionError as e:
             raise connection_error() from e
-        if not download_response.ok:
-            raise storage_error(download_response, "Downloading the processed image", request_id=process_id)
-        return download_response.content
+        if not response.ok:
+            raise storage_error(response, action, request_id=request_id, job_id=job_id)
+        return response.content
 
     def _make_request(
         self, endpoint: str, image_data: bytes | BinaryIO, returns_json: bool = False, **params
@@ -441,16 +463,7 @@ class TopazClient:
                 download_url = download_info.get("url")
 
                 if download_url:
-                    # Download the processed video
-                    try:
-                        download_response = requests.get(download_url, timeout=600)
-                    except requests.exceptions.Timeout as e:
-                        raise timeout_error() from e
-                    except requests.exceptions.ConnectionError as e:
-                        raise connection_error() from e
-                    if not download_response.ok:
-                        raise storage_error(download_response, "Downloading the processed video", request_id=request_id)
-                    return download_response.content
+                    return self.download_file(download_url, "Downloading the processed video", request_id=request_id)
                 else:
                     raise unexpected_response_error(
                         "the completed job has no download URL", status, request_id=request_id

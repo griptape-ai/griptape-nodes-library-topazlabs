@@ -32,27 +32,27 @@ def missing_api_key_error() -> NodeError:
     )
 
 
-def missing_input_error(label: str, kind: str) -> NodeError:
-    """A required input has no value. `label` is the name the UI shows for the parameter."""
+def missing_input_error(label: str, kind: str, parameter: str) -> NodeError:
+    """A required input has no value. `label` is the name the UI shows, `parameter` the node's own name for it."""
     return NodeError(
         f"No {kind} is connected to '{label}'. Connect {_article(kind)} {kind} and run the node again.",
-        fields={"parameter": label},
+        fields={"parameter": parameter},
     )
 
 
-def unreadable_input_error(label: str, kind: str, reason: object) -> NodeError:
+def unreadable_input_error(label: str, kind: str, parameter: str, reason: object) -> NodeError:
     """The value of an input could not be read."""
     return NodeError(
         f"Could not read the {kind} connected to '{label}': {reason}. Reconnect the {kind} and run the node again.",
-        fields={"parameter": label},
+        fields={"parameter": parameter},
     )
 
 
-def empty_input_error(label: str, kind: str) -> NodeError:
+def empty_input_error(label: str, kind: str, parameter: str) -> NodeError:
     """The value of an input holds no usable data."""
     return NodeError(
         f"The {kind} connected to '{label}' is empty or too small to process. Connect a valid {kind}.",
-        fields={"parameter": label},
+        fields={"parameter": parameter},
     )
 
 
@@ -115,11 +115,15 @@ def raise_for_status(response: requests.Response, *, request_id: str | None = No
         raise http_error(response, request_id=request_id, job_id=job_id)
 
 
-def storage_error(response: requests.Response, action: str, *, request_id: str | None = None) -> NodeError:
+def storage_error(
+    response: requests.Response, action: str, *, request_id: str | None = None, job_id: str | None = None
+) -> NodeError:
     """An upload to or download from Topaz Labs storage returned an error status."""
     fields: dict[str, str | int | float | bool] = {"status_code": response.status_code}
     if request_id:
         fields["request_id"] = request_id
+    if job_id:
+        fields["job_id"] = job_id
     return NodeError(
         f"{action} failed with status {response.status_code}. Run the node again.",
         fields=fields,

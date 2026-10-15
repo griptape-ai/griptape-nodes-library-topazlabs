@@ -2,7 +2,6 @@
 
 from typing import Any
 
-import requests
 from base_topaz_video_node import BaseTopazVideoNode
 from griptape.artifacts import UrlArtifact
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
@@ -12,7 +11,6 @@ from topaz_errors import (
     job_failed_error,
     job_timeout_error,
     missing_input_error,
-    storage_error,
     unexpected_response_error,
 )
 
@@ -221,7 +219,7 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
             # Get input video
             video_input = self.get_parameter_value("video_input")
             if not video_input:
-                raise missing_input_error("Input Video", "video")
+                raise missing_input_error("Input Video", "video", "video_input")
 
             # Extract video data
             video_bytes = self._get_video_data(video_input)
@@ -305,13 +303,9 @@ class TopazVideoDenoiseNode(BaseTopazVideoNode):
                     download_url = download_info.get("url")
 
                     if download_url:
-                        # Download the processed video
-                        download_response = requests.get(download_url, timeout=600)
-                        if not download_response.ok:
-                            raise storage_error(
-                                download_response, "Downloading the processed video", request_id=request_id
-                            )
-                        processed_video_bytes = download_response.content
+                        processed_video_bytes = client.download_file(
+                            download_url, "Downloading the processed video", request_id=request_id
+                        )
                         break
                     else:
                         raise unexpected_response_error(

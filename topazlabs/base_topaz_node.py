@@ -137,7 +137,7 @@ class BaseTopazNode(ControlNode):
             NodeError: If the image is missing, unreadable or empty
         """
         if not image_artifact:
-            raise missing_input_error("Input Image", "image")
+            raise missing_input_error("Input Image", "image", "image_input")
 
         try:
             if isinstance(image_artifact, ImageUrlArtifact):
@@ -146,11 +146,11 @@ class BaseTopazNode(ControlNode):
             else:
                 image_bytes = image_artifact.to_bytes()
         except Exception as e:
-            raise unreadable_input_error("Input Image", "image", e) from e
+            raise unreadable_input_error("Input Image", "image", "image_input", e) from e
 
         # Verify we have image data
         if not image_bytes or len(image_bytes) < 100:
-            raise empty_input_error("Input Image", "image")
+            raise empty_input_error("Input Image", "image", "image_input")
 
         # Create hash to track if image changed
         image_hash = hashlib.md5(image_bytes).hexdigest()[:8]

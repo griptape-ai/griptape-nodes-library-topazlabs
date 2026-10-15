@@ -99,10 +99,10 @@ class TopazDenoiseNode(BaseTopazNode):
                     )
                 else:
                     self._update_status("No image input parameter or connections found", show=True)
-                raise missing_input_error("Input Image", "image")
+                raise missing_input_error("Input Image", "image", "image_input")
 
             if not image_artifact:
-                raise empty_input_error("Input Image", "image")
+                raise empty_input_error("Input Image", "image", "image_input")
 
             # Debug: Log the type and basic info about the image artifact
             artifact_type = type(image_artifact).__name__

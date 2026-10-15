@@ -139,10 +139,10 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
             image_artifact = self.get_parameter_value("image_input")
 
             if image_artifact is None:
-                raise missing_input_error("Input Image", "image")
+                raise missing_input_error("Input Image", "image", "image_input")
 
             if not image_artifact:
-                raise empty_input_error("Input Image", "image")
+                raise empty_input_error("Input Image", "image", "image_input")
 
             # Extract image data
             image_data = self._get_image_data(image_artifact)
