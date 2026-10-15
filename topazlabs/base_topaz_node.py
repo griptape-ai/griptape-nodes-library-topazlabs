@@ -212,10 +212,6 @@ class BaseTopazNode(ControlNode):
         """
         return self._api_key_errors()
 
-    def validate_before_workflow_run(self) -> list[Exception] | None:
-        """Check only the API key before the workflow starts; inputs are checked when the node runs."""
-        return self._api_key_errors()
-
     def process(self) -> AsyncResult[None]:
         """Non-blocking entry point for Griptape engine."""
         yield lambda: self._process_sync()

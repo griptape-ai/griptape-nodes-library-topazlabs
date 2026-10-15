@@ -131,7 +131,7 @@ def test_missing_api_key_links_to_the_secret(monkeypatch: pytest.MonkeyPatch) ->
 
     monkeypatch.setattr(GriptapeNodes, "SecretsManager", lambda: NoSecrets())
 
-    errors = TopazDenoiseNode("Node").validate_before_workflow_run()
+    errors = TopazDenoiseNode("Node").validate_before_node_run()
 
     assert errors is not None
     assert len(errors) == 1
@@ -173,11 +173,22 @@ def test_refused_api_key_links_to_update_the_secret(http: FakeHttp) -> None:
 # --- Validation ---
 
 
-def test_workflow_validation_checks_only_the_api_key() -> None:
-    node = TopazDenoiseNode("Node")
+@pytest.mark.parametrize("node_class", [TopazDenoiseNode, TopazVideoUpscaleNode])
+def test_nothing_is_checked_before_the_flow_starts(monkeypatch: pytest.MonkeyPatch, node_class: type) -> None:
+    """A problem found before the flow starts is a toast with no link and no error on a node's header.
+
+    The key and the values are checked when the node runs instead.
+    """
+
+    class NoSecrets:
+        def get_secret(self, _name: str) -> None:
+            return None
+
+    monkeypatch.setattr(GriptapeNodes, "SecretsManager", lambda: NoSecrets())
+    node = node_class("Node")
     node.parameter_values["strength"] = 5.0
 
-    assert node.validate_before_workflow_run() is None
+    assert not node.validate_before_workflow_run()
 
 
 def test_node_validation_names_the_parameter_and_range() -> None:
