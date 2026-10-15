@@ -16,7 +16,7 @@ from constants import (
     VIDEO_PROFILES,
 )
 from griptape.artifacts import BlobArtifact, UrlArtifact
-from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
+from griptape_nodes.exe_types.core_types import NodeError, Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.exe_types.node_types import AsyncResult, ControlNode
 from griptape_nodes.exe_types.param_components.project_file_parameter import ProjectFileParameter
 from griptape_nodes.files.file import File
@@ -24,6 +24,13 @@ from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
 from topaz_client import TopazClient
+from topaz_errors import (
+    empty_input_error,
+    missing_api_key_error,
+    missing_input_error,
+    out_of_range_error,
+    unreadable_input_error,
+)
 
 
 class VideoUrlArtifact(UrlArtifact):
@@ -240,11 +247,11 @@ class BaseTopazVideoNode(ControlNode):
             The Topaz Labs API key
 
         Raises:
-            ValueError: If API key is not found
+            NodeError: If API key is not found
         """
         api_key = GriptapeNodes.SecretsManager().get_secret(API_KEY_ENV_VAR)
         if not api_key:
-            raise ValueError(f"API key not found. Please set the {API_KEY_ENV_VAR} environment variable.")
+            raise missing_api_key_error()
         return api_key
 
     def _get_topaz_client(self) -> TopazClient:
@@ -254,7 +261,7 @@ class BaseTopazVideoNode(ControlNode):
             Configured TopazClient instance
 
         Raises:
-            ValueError: If API key is not available
+            NodeError: If API key is not available
         """
         api_key = self._get_api_key()
         return TopazClient(api_key)
@@ -269,10 +276,10 @@ class BaseTopazVideoNode(ControlNode):
             Video data as bytes
 
         Raises:
-            ValueError: If video artifact is invalid or unsupported
+            NodeError: If the video is missing, unreadable or empty
         """
         if not video_artifact:
-            raise ValueError("No input video provided")
+            raise missing_input_error("Input Video", "video", "video_input")
 
         try:
             # Extract video bytes
@@ -285,31 +292,29 @@ class BaseTopazVideoNode(ControlNode):
                 video_bytes = File(video_artifact.value).read_bytes()
             else:
                 video_bytes = video_artifact.to_bytes()
-
-            # Verify we have video data
-            if not video_bytes or len(video_bytes) < 1000:
-                raise ValueError("Video data is empty or too small")
-
-            # Create hash to track video changes
-            video_hash = hashlib.md5(video_bytes).hexdigest()[:8]
-            video_size = len(video_bytes)
-
-            # Debug info
-            if hasattr(video_artifact, "value"):
-                video_id = (
-                    str(video_artifact.value)[:50] + "..."
-                    if len(str(video_artifact.value)) > 50
-                    else str(video_artifact.value)
-                )
-            else:
-                video_id = f"hash_{video_hash}"
-
-            self._update_status(f"Processing: {video_id} ({video_size} bytes, hash: {video_hash})", show=True)
-
-            return video_bytes
-
         except Exception as e:
-            raise ValueError(f"Failed to extract video data: {str(e)}")
+            raise unreadable_input_error("Input Video", "video", "video_input", e) from e
+
+        # Verify we have video data
+        if not video_bytes or len(video_bytes) < 1000:
+            raise empty_input_error("Input Video", "video", "video_input")
+
+        # Create hash to track video changes
+        video_hash = hashlib.md5(video_bytes).hexdigest()[:8]
+        video_size = len(video_bytes)
+
+        if hasattr(video_artifact, "value"):
+            video_id = (
+                str(video_artifact.value)[:50] + "..."
+                if len(str(video_artifact.value)) > 50
+                else str(video_artifact.value)
+            )
+        else:
+            video_id = f"hash_{video_hash}"
+
+        self._update_status(f"Processing: {video_id} ({video_size} bytes, hash: {video_hash})", show=True)
+
+        return video_bytes
 
     def _save_video_output(self, video_data: bytes, filename_hint: str = "processed_video") -> VideoUrlArtifact:
         """Save processed video data and create output artifact.
@@ -321,15 +326,10 @@ class BaseTopazVideoNode(ControlNode):
         Returns:
             VideoUrlArtifact pointing to the saved video
 
-        Raises:
-            Exception: If saving fails
         """
-        try:
-            dest = self._output_file.build_file()
-            saved = dest.write_bytes(video_data)
-            return VideoUrlArtifact(url=saved.location, name=filename_hint)
-        except Exception as e:
-            raise Exception(f"Failed to save output video: {str(e)}")
+        dest = self._output_file.build_file()
+        saved = dest.write_bytes(video_data)
+        return VideoUrlArtifact(url=saved.location, name=filename_hint)
 
     def _update_status(self, message: str, show: bool = True) -> None:
         """Update the status parameter with a message.
@@ -381,29 +381,33 @@ class BaseTopazVideoNode(ControlNode):
             "cropToFit": self.get_parameter_value("crop_to_fit") or False,
         }
 
+    def _api_key_errors(self) -> list[Exception] | None:
+        """Return an error for a missing API key, or None when it is set."""
+        try:
+            self._get_api_key()
+        except NodeError as e:
+            return [e]
+        return None
+
     def validate_before_node_run(self) -> list[Exception] | None:
         """Validate the node configuration before execution.
 
         Returns:
             List of validation errors, or None if valid
         """
-        errors = []
+        # Without a key nothing can run, so it is the only problem reported.
+        key_errors = self._api_key_errors()
+        if key_errors:
+            return key_errors
 
-        # Check API key
-        try:
-            self._get_api_key()
-        except ValueError as e:
-            errors.append(e)
+        errors: list[Exception] = []
 
         # Check timeout value
         timeout = self.get_parameter_value("processing_timeout")
         if timeout and (timeout < 5 or timeout > 180):
-            errors.append(ValueError("Processing timeout must be between 5 and 180 minutes"))
+            errors.append(out_of_range_error("Timeout (minutes)", timeout, 5, 180, "processing_timeout"))
 
         return errors if errors else None
-
-    def validate_before_workflow_run(self) -> list[Exception] | None:
-        return self.validate_before_node_run()
 
     def process(self) -> AsyncResult[None]:
         """Non-blocking entry point for Griptape engine."""

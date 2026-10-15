@@ -7,6 +7,12 @@ from griptape.artifacts import UrlArtifact
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
+from topaz_errors import (
+    job_failed_error,
+    job_timeout_error,
+    missing_input_error,
+    unexpected_response_error,
+)
 
 
 class VideoUrlArtifact(UrlArtifact):
@@ -152,7 +158,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
             # Get input video
             video_input = self.get_parameter_value("video_input")
             if not video_input:
-                raise ValueError("No input video provided")
+                raise missing_input_error("Input Video", "video", "video_input")
 
             # Extract video data
             video_bytes = self._get_video_data(video_input)
@@ -201,7 +207,9 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
             upload_url = urls[0] if urls else None
 
             if not upload_url:
-                raise ValueError(f"No upload URL in response. Response: {accept_response}")
+                raise unexpected_response_error(
+                    "the response has no upload URL", accept_response, request_id=request_id
+                )
 
             self._update_status("Uploading video to Topaz Labs...", show=True)
 
@@ -233,24 +241,22 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
                     download_url = download_info.get("url")
 
                     if download_url:
-                        # Download the processed video
-                        import requests
-
-                        download_response = requests.get(download_url, timeout=600)
-                        download_response.raise_for_status()
-                        processed_video_bytes = download_response.content
+                        processed_video_bytes = client.download_file(
+                            download_url, "Downloading the processed video", request_id=request_id
+                        )
                         break
                     else:
-                        raise ValueError("No download URL in completion response")
+                        raise unexpected_response_error(
+                            "the completed job has no download URL", status, request_id=request_id
+                        )
 
                 elif current_status == "failed":
-                    error_message = status.get("message", "Processing failed")
-                    raise Exception(f"Video processing failed: {error_message}")
+                    raise job_failed_error(status.get("message"), status, request_id=request_id)
 
                 # Wait before next poll
                 await asyncio.sleep(15)
             else:
-                raise TimeoutError(f"Video processing did not complete within {timeout_seconds} seconds")
+                raise job_timeout_error(timeout_seconds, request_id=request_id)
 
             self._update_status("Saving processed video...", show=True)
 
@@ -267,4 +273,4 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
         except Exception as e:
             error_msg = f"Frame interpolation failed: {str(e)}"
             self._update_status(error_msg, show=True)
-            raise Exception(error_msg)
+            raise

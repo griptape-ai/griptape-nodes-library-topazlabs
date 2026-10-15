@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+from collections.abc import Callable
 from typing import Any, BinaryIO
 
 import requests
@@ -13,6 +14,15 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 from constants import API_BASE_URL, VIDEO_API_BASE_URL
+from topaz_errors import (
+    connection_error,
+    job_failed_error,
+    job_timeout_error,
+    raise_for_status,
+    storage_error,
+    timeout_error,
+    unexpected_response_error,
+)
 
 
 class TopazClient:
@@ -40,7 +50,7 @@ class TopazClient:
             Binary image data
 
         Raises:
-            requests.HTTPError: If the API request fails
+            NodeError: If the API request fails
         """
         return self._make_request("denoise", image_data, **params)
 
@@ -55,7 +65,7 @@ class TopazClient:
             Binary image data
 
         Raises:
-            requests.HTTPError: If the API request fails
+            NodeError: If the API request fails
         """
         return self._make_request("enhance", image_data, **params)
 
@@ -76,14 +86,15 @@ class TopazClient:
             Binary image data of the processed image.
 
         Raises:
-            TimeoutError: If the job doesn't complete within max_wait_time.
-            requests.HTTPError: If any API request fails.
+            NodeError: If any API request fails or the job doesn't complete within max_wait_time.
         """
         # Step 1: Start the async job
         start_response = self._make_request("enhance-gen/async", image_data, returns_json=True, **params)
+        if not isinstance(start_response, dict):
+            raise unexpected_response_error("the response is not a JSON object")
         process_id = start_response.get("process_id")
         if not process_id:
-            raise ValueError("API response did not include a process_id.")
+            raise unexpected_response_error("the response has no process_id", start_response)
 
         # Step 2: Poll for completion
         start_time = time.time()
@@ -95,46 +106,75 @@ class TopazClient:
                 # Step 3: Download the result
                 return self.download_output(process_id)
             elif status == "Failed":
-                raise requests.HTTPError(f"Image processing failed with status: {status}")
+                raise job_failed_error(status_response.get("message"), status_response, job_id=process_id)
 
             time.sleep(poll_interval)
 
-        raise TimeoutError(f"Image processing did not complete within {max_wait_time} seconds.")
+        raise job_timeout_error(max_wait_time, job_id=process_id)
 
     def get_status(self, process_id: str) -> dict[str, Any]:
         """Get the status of a job."""
         url = f"{self.base_url}/status/{process_id}"
+        headers = {"Accept": "application/json"}
         try:
-            headers = {"Accept": "application/json"}
             response = self.session.get(url, timeout=30, headers=headers)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.HTTPError as e:
-            self._handle_http_error(response, e)
-            raise
+        except requests.exceptions.Timeout as e:
+            raise timeout_error() from e
+        except requests.exceptions.ConnectionError as e:
+            raise connection_error() from e
+        raise_for_status(response, job_id=process_id)
+        return response.json()
 
     def download_output(self, process_id: str) -> bytes:
         """Download the output of a completed job."""
         # Get the download URL
         url = f"{self.base_url}/download/{process_id}"
+        headers = {"Accept": "application/json"}
         try:
-            headers = {"Accept": "application/json"}
             response = self.session.get(url, timeout=30, headers=headers)
-            response.raise_for_status()
-            download_info = response.json()
-            download_url = download_info.get("download_url")
+        except requests.exceptions.Timeout as e:
+            raise timeout_error() from e
+        except requests.exceptions.ConnectionError as e:
+            raise connection_error() from e
+        raise_for_status(response, job_id=process_id)
+        download_info = response.json()
+        download_url = download_info.get("download_url")
 
-            if not download_url:
-                raise ValueError("Download endpoint did not return a download_url.")
+        if not download_url:
+            raise unexpected_response_error("the response has no download_url", download_info, job_id=process_id)
 
-            # Download the actual image from the presigned URL
-            download_response = requests.get(download_url, timeout=300)
-            download_response.raise_for_status()
-            return download_response.content
+        return self.download_file(download_url, "Downloading the processed image", timeout=300, job_id=process_id)
 
-        except requests.exceptions.HTTPError as e:
-            self._handle_http_error(response, e)
-            raise
+    def download_file(
+        self,
+        url: str,
+        action: str,
+        *,
+        timeout: int = 600,
+        request_id: str | None = None,
+        job_id: str | None = None,
+    ) -> bytes:
+        """Download a processed file from its presigned URL.
+
+        Args:
+            url: The presigned download URL
+            action: What the node is doing, as a phrase such as "Downloading the processed video"
+            timeout: Seconds to wait for the download
+            request_id: The video request this file belongs to, when there is one
+            job_id: The generative job this file belongs to, when there is one
+
+        Raises:
+            NodeError: If the download times out, cannot connect, or returns an error status.
+        """
+        try:
+            response = requests.get(url, timeout=timeout)
+        except requests.exceptions.Timeout as e:
+            raise timeout_error() from e
+        except requests.exceptions.ConnectionError as e:
+            raise connection_error() from e
+        if not response.ok:
+            raise storage_error(response, action, request_id=request_id, job_id=job_id)
+        return response.content
 
     def _make_request(
         self, endpoint: str, image_data: bytes | BinaryIO, returns_json: bool = False, **params
@@ -151,7 +191,7 @@ class TopazClient:
             Binary image data or JSON response dictionary
 
         Raises:
-            requests.HTTPError: If the API request fails
+            NodeError: If the API request fails
         """
         url = f"{self.base_url}/{endpoint}"
 
@@ -190,51 +230,32 @@ class TopazClient:
                 headers=headers,
                 timeout=300,  # 5 minute timeout for processing
             )
-            response.raise_for_status()
+        except requests.exceptions.Timeout as e:
+            raise timeout_error() from e
+        except requests.exceptions.ConnectionError as e:
+            raise connection_error() from e
+        raise_for_status(response)
 
-            if returns_json:
-                return response.json()
+        if returns_json:
+            return response.json()
 
-            # Validate response content type
-            content_type = response.headers.get("content-type", "")
-            if not content_type.startswith("image/"):
-                raise ValueError(f"Unexpected content type: {content_type}")
+        # Validate response content type
+        content_type = response.headers.get("content-type", "")
+        if not content_type.startswith("image/"):
+            raise unexpected_response_error(f"expected an image but received '{content_type}'")
 
-            return response.content
+        return response.content
 
-        except requests.exceptions.Timeout:
-            raise requests.HTTPError("Request timed out. Image processing may take longer than expected.")
-        except requests.exceptions.ConnectionError:
-            raise requests.HTTPError("Connection error. Please check your internet connection.")
-        except requests.exceptions.HTTPError as e:
-            self._handle_http_error(response, e)
-            raise
-        except Exception as e:
-            raise requests.HTTPError(f"Unexpected error: {str(e)}")
-
-    def _handle_http_error(self, response: requests.Response, error: requests.HTTPError) -> None:
-        """Handle HTTP errors with meaningful messages.
-
-        Args:
-            response: The HTTP response object
-            error: The original HTTP error
-        """
-        status_code = response.status_code
-
+    def _send(self, call: Callable[[], requests.Response], *, request_id: str | None = None) -> requests.Response:
+        """Run a Topaz Labs API call and raise a NodeError if it fails or returns an error status."""
         try:
-            error_data = response.json()
-            error_message = error_data.get("message", "Unknown error")
-        except:
-            error_message = response.text or "Unknown error"
-
-        if status_code == 401:
-            raise requests.HTTPError(f"Authentication failed. Please check your API key. ({error_message})")
-        elif status_code == 429:
-            raise requests.HTTPError(f"Rate limit exceeded. Please wait and try again. ({error_message})")
-        elif status_code >= 500:
-            raise requests.HTTPError(f"Server error. Please try again later. ({error_message})")
-        else:
-            raise requests.HTTPError(f"API error ({status_code}): {error_message}")
+            response = call()
+        except requests.exceptions.Timeout as e:
+            raise timeout_error() from e
+        except requests.exceptions.ConnectionError as e:
+            raise connection_error() from e
+        raise_for_status(response, request_id=request_id)
+        return response
 
     def __enter__(self):
         """Context manager entry."""
@@ -259,29 +280,23 @@ class TopazClient:
             Request ID for the video processing job
 
         Raises:
-            requests.HTTPError: If the API request fails
+            NodeError: If the API request fails
         """
         url = f"{VIDEO_API_BASE_URL}/"
 
         request_data = {"source": source_info, "output": output_config, "filters": filters}
 
-        try:
-            response = self.session.post(
-                url, json=request_data, headers={"Content-Type": "application/json"}, timeout=30
-            )
-            response.raise_for_status()
+        response = self._send(
+            lambda: self.session.post(url, json=request_data, headers={"Content-Type": "application/json"}, timeout=30)
+        )
 
-            result = response.json()
-            request_id = result.get("requestId")
+        result = response.json()
+        request_id = result.get("requestId")
 
-            if not request_id:
-                raise ValueError(f"No requestId in response. Response: {result}")
+        if not request_id:
+            raise unexpected_response_error("the response has no requestId", result)
 
-            return request_id
-
-        except requests.exceptions.HTTPError as e:
-            self._handle_http_error(response, e)
-            raise
+        return request_id
 
     def accept_video_request(self, request_id: str) -> dict[str, Any]:
         """Accept a video processing request and get upload URL.
@@ -293,20 +308,12 @@ class TopazClient:
             Dictionary containing upload URL and other details
 
         Raises:
-            requests.HTTPError: If the API request fails
+            NodeError: If the API request fails
         """
         url = f"{VIDEO_API_BASE_URL}/{request_id}/accept"
 
-        try:
-            response = self.session.patch(url, timeout=30)
-            response.raise_for_status()
-
-            result = response.json()
-            return result
-
-        except requests.exceptions.HTTPError as e:
-            self._handle_http_error(response, e)
-            raise
+        response = self._send(lambda: self.session.patch(url, timeout=30), request_id=request_id)
+        return response.json()
 
     def upload_video(self, upload_url: str, video_data: bytes, content_type: str = "video/mp4") -> str:
         """Upload video data to the provided S3 URL.
@@ -320,20 +327,26 @@ class TopazClient:
             ETag from the S3 upload response
 
         Raises:
-            requests.HTTPError: If the upload fails
+            NodeError: If the upload fails
         """
-        response = requests.put(
-            upload_url,
-            data=video_data,
-            headers={"Content-Type": content_type},
-            timeout=600,  # 10 minutes for upload
-        )
-        response.raise_for_status()
+        try:
+            response = requests.put(
+                upload_url,
+                data=video_data,
+                headers={"Content-Type": content_type},
+                timeout=600,  # 10 minutes for upload
+            )
+        except requests.exceptions.Timeout as e:
+            raise timeout_error() from e
+        except requests.exceptions.ConnectionError as e:
+            raise connection_error() from e
+        if not response.ok:
+            raise storage_error(response, "Uploading the video")
 
         # Extract ETag from response headers
         etag = response.headers.get("ETag", "").strip('"')
         if not etag:
-            raise ValueError("No ETag received from S3 upload")
+            raise unexpected_response_error("the video upload returned no ETag")
 
         return etag
 
@@ -345,19 +358,16 @@ class TopazClient:
             etag: ETag from the S3 upload response
 
         Raises:
-            requests.HTTPError: If the API request fails
+            NodeError: If the API request fails
         """
         url = f"{VIDEO_API_BASE_URL}/{request_id}/complete-upload"
 
         payload = {"uploadResults": [{"partNum": 1, "eTag": etag}]}
 
-        try:
-            response = self.session.patch(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
-            response.raise_for_status()
-
-        except requests.exceptions.HTTPError as e:
-            self._handle_http_error(response, e)
-            raise
+        self._send(
+            lambda: self.session.patch(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30),
+            request_id=request_id,
+        )
 
     def get_video_status(self, request_id: str) -> dict[str, Any]:
         """Get the status of a video processing request.
@@ -369,13 +379,11 @@ class TopazClient:
             Status information including progress and download URL when complete
 
         Raises:
-            requests.HTTPError: If the API request fails
+            NodeError: If the API request fails
         """
         url = f"{VIDEO_API_BASE_URL}/{request_id}/status"
 
-        response = self.session.get(url, timeout=30)
-        response.raise_for_status()
-
+        response = self._send(lambda: self.session.get(url, timeout=30), request_id=request_id)
         return response.json()
 
     def process_video_complete(
@@ -403,8 +411,8 @@ class TopazClient:
             Processed video data as bytes
 
         Raises:
-            requests.HTTPError: If any step fails
-            TimeoutError: If processing takes longer than max_wait_time
+            NodeError: If any step fails
+            NodeError: If processing takes longer than max_wait_time
         """
         # Step 1: Create request
         request_id = self.create_video_request(source_info, output_config, filters)
@@ -417,7 +425,7 @@ class TopazClient:
         upload_url = urls[0] if urls else None
 
         if not upload_url:
-            raise ValueError(f"No upload URL in response. Response: {accept_response}")
+            raise unexpected_response_error("the response has no upload URL", accept_response, request_id=request_id)
 
         # Step 3: Upload video
         etag = self.upload_video(upload_url, video_data)
@@ -455,18 +463,16 @@ class TopazClient:
                 download_url = download_info.get("url")
 
                 if download_url:
-                    # Download the processed video
-                    download_response = requests.get(download_url, timeout=600)
-                    download_response.raise_for_status()
-                    return download_response.content
+                    return self.download_file(download_url, "Downloading the processed video", request_id=request_id)
                 else:
-                    raise ValueError("No download URL in completion response")
+                    raise unexpected_response_error(
+                        "the completed job has no download URL", status, request_id=request_id
+                    )
 
             elif current_status == "failed":
-                error_message = status.get("message", "Processing failed")
-                raise requests.HTTPError(f"Video processing failed: {error_message}")
+                raise job_failed_error(status.get("message"), status, request_id=request_id)
 
             # Wait before next poll
             time.sleep(poll_interval)
 
-        raise TimeoutError(f"Video processing did not complete within {max_wait_time} seconds")
+        raise job_timeout_error(max_wait_time, request_id=request_id)
