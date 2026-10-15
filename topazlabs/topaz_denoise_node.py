@@ -154,6 +154,8 @@ class TopazDenoiseNode(BaseTopazNode):
             List of validation errors, or None if valid
         """
         errors = super().validate_before_node_run() or []
+        if errors:
+            return errors
 
         # Validate parameter ranges
         strength = self.get_parameter_value("strength")

@@ -395,7 +395,12 @@ class BaseTopazVideoNode(ControlNode):
         Returns:
             List of validation errors, or None if valid
         """
-        errors = self._api_key_errors() or []
+        # Without a key nothing can run, so it is the only problem reported.
+        key_errors = self._api_key_errors()
+        if key_errors:
+            return key_errors
+
+        errors: list[Exception] = []
 
         # Check timeout value
         timeout = self.get_parameter_value("processing_timeout")

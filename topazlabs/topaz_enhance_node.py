@@ -195,6 +195,8 @@ class TopazEnhanceNode(BaseTopazNode):
             List of validation errors, or None if valid
         """
         errors = super().validate_before_node_run() or []
+        if errors:
+            return errors
 
         # Validate parameter ranges
         params_to_validate = [

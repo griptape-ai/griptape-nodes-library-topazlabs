@@ -156,6 +156,32 @@ def test_missing_api_key_is_reported_by_the_video_node_too(monkeypatch: pytest.M
     assert [link.url for link in errors[0].links] == [KEY_LINK]
 
 
+@pytest.mark.parametrize(
+    ("node_class", "parameter", "bad_value"),
+    [
+        (TopazDenoiseNode, "strength", 5.0),
+        (TopazEnhanceNode, "sharpen", 1000.0),
+        (TopazVideoUpscaleNode, "processing_timeout", 1),
+    ],
+)
+def test_a_missing_key_is_the_only_problem_reported(
+    monkeypatch: pytest.MonkeyPatch, node_class: type, parameter: str, bad_value: float
+) -> None:
+    class NoSecrets:
+        def get_secret(self, _name: str) -> None:
+            return None
+
+    monkeypatch.setattr(GriptapeNodes, "SecretsManager", lambda: NoSecrets())
+    node = node_class("Node")
+    node.parameter_values[parameter] = bad_value
+
+    errors = node.validate_before_node_run()
+
+    assert errors is not None
+    assert len(errors) == 1
+    assert "TOPAZ_LABS_API_KEY is not set" in str(errors[0])
+
+
 def test_refused_api_key_links_to_update_the_secret(http: FakeHttp) -> None:
     _respond(http, lambda _r: _response(401, body={"message": "Invalid authentication token"}))
 
