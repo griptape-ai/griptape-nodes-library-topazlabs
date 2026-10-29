@@ -10,4 +10,4 @@ the `library_version` in `topazlabs/griptape_nodes_library.json`.
 
 <!-- Entries go in changelog.d/, one file each. See changelog.d/README.md. -->
 
-[Unreleased]: https://github.com/griptape-ai/griptape-nodes-library-topazlabs/compare/v0.1.11...HEAD
+[Unreleased]: https://github.com/griptape-ai/griptape-nodes-library-topazlabs/compare/7e6b49da6249434253105d9e8f916482d3386d64...HEAD
