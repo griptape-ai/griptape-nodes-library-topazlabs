@@ -174,13 +174,7 @@ class TopazFrameInterpolationNode(BaseTopazVideoNode):
 
             self._update_status("Submitting video for processing...", show=True)
 
-            # Get processing timeout in seconds
-            timeout_minutes = self.get_parameter_value("processing_timeout") or 60
-            timeout_seconds = timeout_minutes * 60
-
-            processed_video_bytes = await self._run_video_job(
-                client, video_bytes, source_info, output_config, filters, timeout_seconds
-            )
+            processed_video_bytes = await self._run_video_job(client, video_bytes, source_info, output_config, filters)
 
             self._update_status("Saving processed video...", show=True)
 

@@ -11,8 +11,10 @@ import importlib
 import importlib.util
 import json
 import sys
+import time
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 from urllib.parse import urlparse
@@ -274,17 +276,32 @@ def test_a_failed_video_job_carries_the_request_id(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.parametrize(("module_name", "class_name"), VIDEO_NODES)
-def test_a_video_job_that_outlasts_the_wait_limit_carries_the_request_id(
-    module_name: str, class_name: str, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("minutes", [None, 5, 0.001])
+def test_a_video_job_that_outlasts_the_wait_limit_names_the_timeout_parameter_in_minutes(
+    module_name: str, class_name: str, minutes: float | None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     node = _with_input(_node(module_name, class_name), module_name)
-    _force(node, "processing_timeout", 0.001)
-    _network(monkeypatch, _route(True, status=(200, {"status": "processing"})))
+    if minutes is not None:
+        _force(node, "processing_timeout", minutes)
+    polls = []
+    ticks = iter(range(0, 10**6, 100))
+    fake_time = SimpleNamespace(time=lambda: next(ticks), strftime=time.strftime)
+    if minutes != 0.001:
+        monkeypatch.setattr(base_topaz_video_node, "time", fake_time)
+    route = _route(True, status=(200, {"status": "processing"}))
+    _network(monkeypatch, lambda r: polls.append(r.url) or route(r))
 
     error = _run(node)
 
-    assert "did not finish the video within 0.06 seconds" in str(error)
+    shown = 60 if minutes is None else minutes
+    assert (
+        str(error)
+        == f"The video did not finish within {shown} minutes. Raise 'Timeout (minutes)' and run the node again."
+    )
     assert error.fields == {"request_id": "r1"}
+    # With the fake clock, 100 s per call: a 5 minute wait polls twice, an hour polls many times.
+    if minutes == 5:
+        assert len([u for u in polls if u.endswith("/status")]) == 2
 
 
 @pytest.mark.parametrize(

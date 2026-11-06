@@ -402,15 +402,17 @@ class BaseTopazVideoNode(ControlNode):
         source_info: dict[str, Any],
         output_config: dict[str, Any],
         filters: list[dict[str, Any]],
-        timeout_seconds: int,
     ) -> bytes:
         """Create the request, upload the video, wait for the result and download it.
 
         The video nodes share this so a failed step reads the same on all of them.
 
         Raises:
-            NodeError: If a step fails, the job fails, or it does not finish within timeout_seconds
+            NodeError: If a step fails, the job fails, or it does not finish within the Timeout (minutes) parameter
         """
+        timeout_minutes = self.get_parameter_value("processing_timeout") or 60
+        timeout_seconds = timeout_minutes * 60
+
         # Create request and get task ID
         request_id = client.create_video_request(source_info, output_config, filters)
 
@@ -478,8 +480,8 @@ class BaseTopazVideoNode(ControlNode):
             await asyncio.sleep(15)
 
         raise job_error(
-            f"Topaz Labs did not finish the video within {timeout_seconds} seconds. "
-            "Run the node again, or raise the timeout.",
+            f"The video did not finish within {timeout_minutes} minutes. "
+            "Raise 'Timeout (minutes)' and run the node again.",
             request_id=request_id,
         )
 
