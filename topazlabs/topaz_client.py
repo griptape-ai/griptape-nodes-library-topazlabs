@@ -63,7 +63,7 @@ class TopazClient:
             Binary image data
 
         Raises:
-            requests.HTTPError: If the API request fails
+            NodeError: If the API request fails
         """
         return self._make_request("denoise", image_data, **params)
 
@@ -78,7 +78,7 @@ class TopazClient:
             Binary image data
 
         Raises:
-            requests.HTTPError: If the API request fails
+            NodeError: If the API request fails
         """
         return self._make_request("enhance", image_data, **params)
 
