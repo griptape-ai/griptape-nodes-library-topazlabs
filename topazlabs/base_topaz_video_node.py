@@ -16,7 +16,7 @@ from constants import (
     VIDEO_PROFILES,
 )
 from griptape.artifacts import BlobArtifact, UrlArtifact
-from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
+from griptape_nodes.exe_types.core_types import NodeError, Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.exe_types.node_types import AsyncResult, ControlNode
 from griptape_nodes.exe_types.param_components.project_file_parameter import ProjectFileParameter
 from griptape_nodes.files.file import File
@@ -24,6 +24,7 @@ from griptape_nodes.retained_mode.griptape_nodes import GriptapeNodes
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
 from topaz_client import TopazClient
+from topaz_errors import job_error, missing_input_error, out_of_range_error, unusable_input_error
 
 
 class VideoUrlArtifact(UrlArtifact):
@@ -240,11 +241,11 @@ class BaseTopazVideoNode(ControlNode):
             The Topaz Labs API key
 
         Raises:
-            ValueError: If API key is not found
+            NodeError: If API key is not found
         """
         api_key = GriptapeNodes.SecretsManager().get_secret(API_KEY_ENV_VAR)
         if not api_key:
-            raise ValueError(f"API key not found. Please set the {API_KEY_ENV_VAR} environment variable.")
+            raise NodeError.from_missing_secret(API_KEY_ENV_VAR)
         return api_key
 
     def _get_topaz_client(self) -> TopazClient:
@@ -254,7 +255,7 @@ class BaseTopazVideoNode(ControlNode):
             Configured TopazClient instance
 
         Raises:
-            ValueError: If API key is not available
+            NodeError: If API key is not available
         """
         api_key = self._get_api_key()
         return TopazClient(api_key)
@@ -269,10 +270,10 @@ class BaseTopazVideoNode(ControlNode):
             Video data as bytes
 
         Raises:
-            ValueError: If video artifact is invalid or unsupported
+            NodeError: If the video is missing, unreadable or empty
         """
         if not video_artifact:
-            raise ValueError("No input video provided")
+            raise missing_input_error("video", "Input Video", "video_input")
 
         try:
             # Extract video bytes
@@ -285,31 +286,30 @@ class BaseTopazVideoNode(ControlNode):
                 video_bytes = File(video_artifact.value).read_bytes()
             else:
                 video_bytes = video_artifact.to_bytes()
-
-            # Verify we have video data
-            if not video_bytes or len(video_bytes) < 1000:
-                raise ValueError("Video data is empty or too small")
-
-            # Create hash to track video changes
-            video_hash = hashlib.md5(video_bytes).hexdigest()[:8]
-            video_size = len(video_bytes)
-
-            # Debug info
-            if hasattr(video_artifact, "value"):
-                video_id = (
-                    str(video_artifact.value)[:50] + "..."
-                    if len(str(video_artifact.value)) > 50
-                    else str(video_artifact.value)
-                )
-            else:
-                video_id = f"hash_{video_hash}"
-
-            self._update_status(f"Processing: {video_id} ({video_size} bytes, hash: {video_hash})", show=True)
-
-            return video_bytes
-
         except Exception as e:
-            raise ValueError(f"Failed to extract video data: {str(e)}")
+            raise unusable_input_error("video", "Input Video", "video_input", e) from e
+
+        # Verify we have video data
+        if not video_bytes or len(video_bytes) < 1000:
+            raise unusable_input_error("video", "Input Video", "video_input", "it is empty or too small to process")
+
+        # Create hash to track video changes
+        video_hash = hashlib.md5(video_bytes).hexdigest()[:8]
+        video_size = len(video_bytes)
+
+        # Debug info
+        if hasattr(video_artifact, "value"):
+            video_id = (
+                str(video_artifact.value)[:50] + "..."
+                if len(str(video_artifact.value)) > 50
+                else str(video_artifact.value)
+            )
+        else:
+            video_id = f"hash_{video_hash}"
+
+        self._update_status(f"Processing: {video_id} ({video_size} bytes, hash: {video_hash})", show=True)
+
+        return video_bytes
 
     def _save_video_output(self, video_data: bytes, filename_hint: str = "processed_video") -> VideoUrlArtifact:
         """Save processed video data and create output artifact.
@@ -321,15 +321,10 @@ class BaseTopazVideoNode(ControlNode):
         Returns:
             VideoUrlArtifact pointing to the saved video
 
-        Raises:
-            Exception: If saving fails
         """
-        try:
-            dest = self._output_file.build_file()
-            saved = dest.write_bytes(video_data)
-            return VideoUrlArtifact(url=saved.location, name=filename_hint)
-        except Exception as e:
-            raise Exception(f"Failed to save output video: {str(e)}")
+        dest = self._output_file.build_file()
+        saved = dest.write_bytes(video_data)
+        return VideoUrlArtifact(url=saved.location, name=filename_hint)
 
     def _update_status(self, message: str, show: bool = True) -> None:
         """Update the status parameter with a message.
@@ -387,23 +382,108 @@ class BaseTopazVideoNode(ControlNode):
         Returns:
             List of validation errors, or None if valid
         """
-        errors = []
-
-        # Check API key
+        # Without a key nothing can run, so it is the only problem reported.
         try:
             self._get_api_key()
-        except ValueError as e:
-            errors.append(e)
+        except NodeError as e:
+            return [e]
 
         # Check timeout value
         timeout = self.get_parameter_value("processing_timeout")
         if timeout and (timeout < 5 or timeout > 180):
-            errors.append(ValueError("Processing timeout must be between 5 and 180 minutes"))
+            return [out_of_range_error("Timeout (minutes)", "processing_timeout", timeout, 5, 180)]
 
-        return errors if errors else None
+        return None
 
-    def validate_before_workflow_run(self) -> list[Exception] | None:
-        return self.validate_before_node_run()
+    async def _run_video_job(
+        self,
+        client: TopazClient,
+        video_bytes: bytes,
+        source_info: dict[str, Any],
+        output_config: dict[str, Any],
+        filters: list[dict[str, Any]],
+    ) -> bytes:
+        """Create the request, upload the video, wait for the result and download it.
+
+        The video nodes share this so a failed step reads the same on all of them.
+
+        Raises:
+            NodeError: If a step fails, the job fails, or it does not finish within the Timeout (minutes) parameter
+        """
+        timeout_minutes = self.get_parameter_value("processing_timeout") or 60
+        timeout_seconds = timeout_minutes * 60
+
+        # Create request and get task ID
+        request_id = client.create_video_request(source_info, output_config, filters)
+
+        # Set the task ID output immediately
+        self.parameter_output_values["task_id"] = request_id
+
+        # Also try to publish the task ID update
+        if hasattr(self, "publish_update_to_parameter"):
+            try:
+                self.publish_update_to_parameter("task_id", request_id)
+            except:
+                pass
+
+        self._update_status(f"Created processing request: {request_id}", show=True)
+
+        # Accept request and get upload URL
+        accept_response = client.accept_video_request(request_id)
+        urls = accept_response.get("urls")
+        upload_url = urls[0] if isinstance(urls, list) and urls else None
+
+        if not upload_url:
+            raise job_error(
+                "Topaz Labs did not return an upload URL. Run the node again.",
+                response=accept_response,
+                request_id=request_id,
+            )
+
+        self._update_status("Uploading video to Topaz Labs...", show=True)
+
+        # Upload video and get ETag
+        etag = client.upload_video(upload_url, video_bytes, request_id=request_id)
+
+        # Complete upload
+        client.complete_video_upload(request_id, etag)
+        self._update_status("Upload complete, processing started...", show=True)
+
+        # Poll for completion
+        start_time = time.time()
+        while time.time() - start_time < timeout_seconds:
+            status = client.get_video_status(request_id)
+
+            current_status = status.get("status", "unknown")
+            status_message = status.get("message", f"Processing... (status: {current_status})")
+
+            # Update status
+            self._update_status(status_message, show=True)
+
+            if current_status == "complete":
+                self._update_status("Processing complete, downloading result...", show=True)
+
+                download_url = (status.get("download") or {}).get("url")
+                if not download_url:
+                    raise job_error(
+                        "Topaz Labs did not return a download URL. Run the node again.",
+                        response=status,
+                        request_id=request_id,
+                    )
+                return client.download_file(download_url, {"request_id": request_id})
+
+            if current_status == "failed":
+                reason = status.get("message") or "Topaz Labs could not process the video."
+                raise job_error(str(reason), response=status, request_id=request_id)
+
+            # Wait before next poll
+            await asyncio.sleep(15)
+
+        raise job_error(
+            f"The video did not finish within {timeout_minutes} minutes. "
+            "Raise 'Timeout (minutes)' and run the node again.",
+            request_id=request_id,
+        )
 
     def process(self) -> AsyncResult[None]:
         """Non-blocking entry point for Griptape engine."""

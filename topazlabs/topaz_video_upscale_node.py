@@ -232,8 +232,6 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
 
             # Get input video
             video_input = self.get_parameter_value("video_input")
-            if not video_input:
-                raise ValueError("No input video provided")
 
             # Extract video data
             video_bytes = self._get_video_data(video_input)
@@ -260,81 +258,7 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
 
             self._update_status(f"Upscaling with {model} model ({upscale_factor})...", show=True)
 
-            # Get processing timeout in seconds
-            timeout_minutes = self.get_parameter_value("processing_timeout") or 60
-            timeout_seconds = timeout_minutes * 60
-
-            # Create request and get task ID
-            request_id = client.create_video_request(source_info, output_config, filters)
-
-            # Set the task ID output immediately
-            self.parameter_output_values["task_id"] = request_id
-
-            # Also try to publish the task ID update
-            if hasattr(self, "publish_update_to_parameter"):
-                try:
-                    self.publish_update_to_parameter("task_id", request_id)
-                except:
-                    pass
-
-            self._update_status(f"Created processing request: {request_id}", show=True)
-
-            # Accept request and get upload URL
-            accept_response = client.accept_video_request(request_id)
-            urls = accept_response.get("urls", [])
-            upload_url = urls[0] if urls else None
-
-            if not upload_url:
-                raise ValueError(f"No upload URL in response. Response: {accept_response}")
-
-            self._update_status("Uploading video to Topaz Labs...", show=True)
-
-            # Upload video and get ETag
-            etag = client.upload_video(upload_url, video_bytes)
-
-            # Complete upload
-            client.complete_video_upload(request_id, etag)
-            self._update_status("Upload complete, processing started...", show=True)
-
-            # Poll for completion
-            import asyncio
-            import time
-
-            start_time = time.time()
-            while time.time() - start_time < timeout_seconds:
-                status = client.get_video_status(request_id)
-
-                current_status = status.get("status", "unknown")
-                status_message = status.get("message", f"Processing... (status: {current_status})")
-
-                # Update status
-                self._update_status(status_message, show=True)
-
-                if current_status == "complete":
-                    self._update_status("Processing complete, downloading result...", show=True)
-
-                    download_info = status.get("download", {})
-                    download_url = download_info.get("url")
-
-                    if download_url:
-                        # Download the processed video
-                        import requests
-
-                        download_response = requests.get(download_url, timeout=600)
-                        download_response.raise_for_status()
-                        processed_video_bytes = download_response.content
-                        break
-                    else:
-                        raise ValueError("No download URL in completion response")
-
-                elif current_status == "failed":
-                    error_message = status.get("message", "Processing failed")
-                    raise Exception(f"Video processing failed: {error_message}")
-
-                # Wait before next poll
-                await asyncio.sleep(15)
-            else:
-                raise TimeoutError(f"Video processing did not complete within {timeout_seconds} seconds")
+            processed_video_bytes = await self._run_video_job(client, video_bytes, source_info, output_config, filters)
 
             self._update_status("Saving upscaled video...", show=True)
 
@@ -350,4 +274,4 @@ class TopazVideoUpscaleNode(BaseTopazVideoNode):
         except Exception as e:
             error_msg = f"Video upscaling failed: {str(e)}"
             self._update_status(error_msg, show=True)
-            raise Exception(error_msg)
+            raise
