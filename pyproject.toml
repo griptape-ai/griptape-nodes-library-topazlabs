@@ -21,7 +21,7 @@ build-backend = "hatchling.build"
 packages = ["topazlabs"]
 
 [dependency-groups]
-dev = ["pyright>=1.1.396", "pytest-asyncio>=0.21.0", "ruff>=0.8.0", "pytest", "griptape-nodes-engine"]
+dev = ["pyright>=1.1.396", "pytest-asyncio>=0.21.0", "ruff>=0.8.0", "pytest", "griptape-nodes-engine>=0.105.0"]
 
 [tool.ruff]
 line-length = 120
@@ -57,6 +57,8 @@ venv = ".venv"
 include = ["."]
 exclude = [".venv", "**/node_modules", "**/__pycache__", "**/.*", "templates"]
 pythonVersion = "3.12"
+# The engine loads each node file on its own, so node files import their siblings by bare name.
+extraPaths = ["topazlabs"]
 reportIncompatibleMethodOverride = false
 reportMissingImports = false
 reportMissingModuleSource = false
@@ -64,3 +66,7 @@ reportAttributeAccessIssue = false
 reportCallIssue = false
 reportReturnType = false
 reportPossiblyUnboundVariable = false
+
+[tool.pytest.ini_options]
+# Same reason as pyright extraPaths: node files import their siblings by bare name.
+pythonpath = ["topazlabs"]

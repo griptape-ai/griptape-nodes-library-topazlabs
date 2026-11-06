@@ -7,6 +7,7 @@ from constants import ENHANCE_DEFAULTS, ENHANCE_MODELS, PARAMETER_RANGES
 from griptape_nodes.exe_types.core_types import Parameter, ParameterMode, ParameterTypeBuiltin
 from griptape_nodes.traits.options import Options
 from griptape_nodes.traits.slider import Slider
+from topaz_errors import missing_input_error, out_of_range_error
 
 
 class TopazEnhanceNode(BaseTopazNode):
@@ -124,10 +125,7 @@ class TopazEnhanceNode(BaseTopazNode):
                     )
                 else:
                     self._update_status("No image input parameter or connections found", show=True)
-                raise ValueError("No input image provided")
-
-            if not image_artifact:
-                raise ValueError("Input image is empty or falsy")
+                raise missing_input_error("image", "Input Image", "image_input")
 
             # Debug: Log the type and basic info about the image artifact
             artifact_type = type(image_artifact).__name__
@@ -185,7 +183,7 @@ class TopazEnhanceNode(BaseTopazNode):
         except Exception as e:
             error_message = f"Error during enhancement: {str(e)}"
             self._update_status(error_message, show=True)
-            raise Exception(error_message)
+            raise
 
     def validate_before_node_run(self) -> list[Exception] | None:
         """Validate the enhance node configuration before execution.
@@ -193,25 +191,25 @@ class TopazEnhanceNode(BaseTopazNode):
         Returns:
             List of validation errors, or None if valid
         """
-        errors = super().validate_before_node_run() or []
+        # Without a key nothing can run, so it is the only problem reported.
+        if key_errors := self._api_key_errors():
+            return key_errors
+
+        errors: list[Exception] = []
 
         # Validate parameter ranges
         params_to_validate = [
-            ("sharpen", "sharpen"),
-            ("denoise", "denoise"),
-            ("fix_compression", "fix_compression"),
-            ("face_enhancement_strength", "face_enhancement_strength"),
+            ("sharpen", "Sharpen"),
+            ("denoise", "Denoise"),
+            ("fix_compression", "Fix Compression"),
+            ("face_enhancement_strength", "Face Enhancement Strength"),
         ]
 
-        for param_name, range_key in params_to_validate:
+        for param_name, label in params_to_validate:
             value = self.get_parameter_value(param_name)
             if value is not None:
-                param_range = PARAMETER_RANGES[range_key]
+                param_range = PARAMETER_RANGES[param_name]
                 if not (param_range[0] <= value <= param_range[1]):
-                    display_name = param_name.replace("_", " ").title()
-                    errors.append(ValueError(f"{display_name} must be between {param_range[0]} and {param_range[1]}"))
+                    errors.append(out_of_range_error(label, param_name, value, *param_range))
 
         return errors if errors else None
-
-    def validate_before_workflow_run(self) -> list[Exception] | None:
-        return self.validate_before_node_run()

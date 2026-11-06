@@ -137,12 +137,6 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
             # Get input image
             image_artifact = self.get_parameter_value("image_input")
 
-            if image_artifact is None:
-                raise ValueError("No input image provided")
-
-            if not image_artifact:
-                raise ValueError("Input image is empty or falsy")
-
             # Extract image data
             image_data = self._get_image_data(image_artifact)
 
@@ -216,19 +210,5 @@ class TopazCreativeEnhanceNode(BaseTopazNode):
             self.parameter_output_values["image_output"] = output_artifact
 
         except Exception as e:
-            raise RuntimeError(f"Enhance Generative processing failed: {str(e)}")
-
-    def validate_before_node_run(self) -> list[Exception] | None:
-        """Validate that required configuration is available before execution."""
-        errors = []
-
-        # Check API key
-        try:
-            self._get_api_key()
-        except Exception as e:
-            errors.append(e)
-
-        return errors if errors else None
-
-    def validate_before_workflow_run(self) -> list[Exception] | None:
-        return self.validate_before_node_run()
+            self._update_status(f"Enhance Generative processing failed: {e}", show=True)
+            raise
